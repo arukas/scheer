@@ -3,6 +3,7 @@ import {
   extractHandle,
   detectPlatformByUrl,
   detectPlatformByApi,
+  detectPlatformByHtml,
   detectPlatform,
   getPageStatus,
 } from '@/shared/platform';
@@ -85,6 +86,37 @@ describe('detectPlatformByApi', () => {
   });
 });
 
+describe('detectPlatformByHtml', () => {
+  it('detects ShopLine by myshopline.com script host', () => {
+    const html =
+      '<html><head><script src="https://img-va.myshopline.com/image/store/1747279131125/foo.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('shopline');
+  });
+
+  it('detects NewShop by techcloudclub.com script host', () => {
+    const html =
+      '<html><head><script src="https://cdn.techcloudclub.com/static/app.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('newshop');
+  });
+
+  it('detects Shopify by cdn/shopifycloud script path', () => {
+    const html =
+      '<html><head><script src="https://example.com/cdn/shopifycloud/bar.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('shopify');
+  });
+
+  it('detects Shopify by cdn.shopify.com script host', () => {
+    const html =
+      '<html><head><script src="https://cdn.shopify.com/s/files/1/0000/0000/0000/files/foo.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('shopify');
+  });
+
+  it('returns null when no known script marker', () => {
+    const html = '<html><head><script src="https://example.com/app.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBeNull();
+  });
+});
+
 describe('detectPlatform', () => {
   let fetchMock: Mock;
 
@@ -99,15 +131,10 @@ describe('detectPlatform', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('falls back to API detection for custom domains', async () => {
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 404 });
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ID: 123 }),
-    });
-
-    const result = await detectPlatform('https://warming80.hotishop.com/products/55-6');
-    expect(result).toBe('newshop');
+  it('does not call API for custom domains without HTML markers', async () => {
+    const result = await detectPlatform('https://example.com/products/test');
+    expect(result).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -119,14 +146,11 @@ describe('getPageStatus', () => {
     global.fetch = fetchMock;
   });
 
-  it('returns platform and canExtract true for known platform', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ product: { id: 1 } }),
-    });
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 404 });
+  it('returns platform and canExtract true for Shopify by script marker', async () => {
+    const html =
+      '<html><head><script src="https://cdn.shopify.com/s/files/1/0000/0000/0000/files/foo.js"></script></head></html>';
 
-    const status = await getPageStatus('https://example.com/products/test');
+    const status = await getPageStatus('https://example.com/products/test', html);
     expect(status.platform).toBe('shopify');
     expect(status.canExtract).toBe(true);
   });

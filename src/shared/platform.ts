@@ -102,32 +102,32 @@ export async function detectPlatformByApi(url: string): Promise<PlatformKey | nu
   return null;
 }
 
-export function detectPlatformByHtml(html: string): PlatformKey | null {
-  const text = html.toLowerCase();
+function extractScriptSrcs(html: string): string[] {
+  const srcs: string[] = [];
+  const regex = /<script[^>]+src\s*=\s*["']([^"']+)["']/gi;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(html)) !== null) {
+    srcs.push(match[1].toLowerCase());
+  }
+  return srcs;
+}
 
-  // ShopLine：主世界注水对象、Shopline 全局变量、ShopLine CDN / section
-  if (
-    text.includes('__preload_state__') ||
-    text.includes('window.shopline') ||
-    text.includes('myshopline.com') ||
-    text.includes('shopline-section-')
-  ) {
+export function detectPlatformByHtml(html: string): PlatformKey | null {
+  const srcs = extractScriptSrcs(html);
+
+  // ShopLine：脚本 host 包含 myshopline.com
+  if (srcs.some((src) => src.includes('myshopline.com'))) {
     return 'shopline';
   }
 
-  // ShopBase
-  if (text.includes('__initial_state__')) {
-    return 'shopbase';
+  // NewShop：脚本 host 包含 techcloudclub.com
+  if (srcs.some((src) => src.includes('techcloudclub.com'))) {
+    return 'newshop';
   }
 
-  // ShopLazza
-  if (text.includes('shoplazza') || text.includes('name="product_id"')) {
-    return 'shoplazza';
-  }
-
-  // XShopPy
-  if (text.includes('input.product-id') || text.includes('pagecontainer.j-pagecontainer')) {
-    return 'xshoppy';
+  // Shopify：脚本 URI 包含 cdn/shopifycloud（或通用 Shopify CDN）
+  if (srcs.some((src) => src.includes('cdn/shopifycloud') || src.includes('cdn.shopify.com'))) {
+    return 'shopify';
   }
 
   return null;
@@ -138,17 +138,10 @@ export async function detectPlatform(url: string, html?: string): Promise<Platfo
   const byUrl = detectPlatformByUrl(url);
   if (byUrl) return byUrl;
 
-  // 2. 有 HTML 时优先做 HTML 指纹探测，避免把 ShopLine 误判去请求 Shopify .json
+  // 2. 通过页面引用的脚本 host / path 判断平台，不再主动调 API 探测
   if (html) {
     const byHtml = detectPlatformByHtml(html);
     if (byHtml) return byHtml;
-  }
-
-  // 3. 对 /products/<handle> 页面用 API 探测（Shopify / NewShop）
-  const { handle } = extractHandle(url);
-  if (handle) {
-    const byApi = await detectPlatformByApi(url);
-    if (byApi) return byApi;
   }
 
   return null;
