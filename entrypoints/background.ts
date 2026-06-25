@@ -13,6 +13,7 @@ import {
 import { createLogger } from '../src/shared/logger';
 import { onMessage } from '../src/shared/messaging';
 import { getPageStatus } from '../src/shared/platform';
+import type { PageStatus } from '../src/shared/platform';
 import { submitCreateProduct } from '../src/shared/api';
 
 export default defineBackground(() => {
@@ -40,41 +41,14 @@ export default defineBackground(() => {
     switch (message.type) {
       case 'GET_PAGE_STATUS': {
         try {
-          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-          const url = tab?.url ?? '';
-
-          // 1. 优先让内容脚本做 DOM 指纹探测
-          if (tab?.id) {
-            try {
-              const status = (await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_STATUS' })) as {
-                url: string;
-                platform: import('../src/shared/schema').PlatformKey | null;
-                canExtract: boolean;
-                reason: string;
-              };
-              log.debug('GET_PAGE_STATUS (from content)', status);
-              sendResponse(status);
-              break;
-            } catch {
-              // 内容脚本未注入或出错时继续 fallback
-            }
+          const result = await getActivePageStatus();
+          if (!result) {
+            sendResponse({ url: '', platform: null, canExtract: false, reason: '获取当前标签页失败' });
+            break;
           }
-
-          // 2. Fallback：通过 scripting.executeScript 直接读取页面 HTML 做探测
-          if (tab?.id) {
-            const html = await getTabHtml(tab.id);
-            if (html) {
-              const status = await getPageStatus(url, html);
-              log.debug('GET_PAGE_STATUS (from scripting)', status);
-              sendResponse(status);
-              break;
-            }
-          }
-
-          // 3. 最后只能按 URL 规则兜底
-          const status = await getPageStatus(url);
-          log.debug('GET_PAGE_STATUS', status);
-          sendResponse(status);
+          const { source } = result;
+          log.debug(`GET_PAGE_STATUS (from ${source})`, result.status);
+          sendResponse(result.status);
         } catch (err) {
           log.error('GET_PAGE_STATUS 失败', { error: (err as Error).message });
           sendResponse({ url: '', platform: null, canExtract: false, reason: '获取当前标签页失败' });
@@ -121,18 +95,19 @@ export default defineBackground(() => {
 
       case 'CREATE_PRODUCT': {
         try {
-          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-          const url = tab?.url ?? '';
-          if (!tab?.id) {
+          const active = await getActivePageStatus();
+          if (!active) {
             throw new Error('没有活跃标签页');
           }
-
-          const pageStatus = await getPageStatus(url);
+          const { tab, status: pageStatus } = active;
+          if (!tab.id) {
+            throw new Error('没有活跃标签页');
+          }
           if (!pageStatus.canExtract || !pageStatus.platform) {
             throw new Error(pageStatus.reason || '当前页面不可采集');
           }
 
-          log.info('请求内容脚本采集商品', { url, platform: pageStatus.platform });
+          log.info('请求内容脚本采集商品', { url: pageStatus.url, platform: pageStatus.platform });
           const extractResponse = (await chrome.tabs.sendMessage(tab.id, {
             type: 'EXTRACT_PRODUCT',
             payload: { platform: pageStatus.platform },
@@ -167,14 +142,12 @@ export default defineBackground(() => {
           log.error('CREATE_PRODUCT 失败', { error });
 
           try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            const url = tab?.url ?? '';
-            const pageStatus = await getPageStatus(url);
-            if (pageStatus.platform) {
+            const active = await getActivePageStatus();
+            if (active?.status.platform) {
               await recordHistory({
                 status: 'failed',
-                source_url: url,
-                platform: pageStatus.platform,
+                source_url: active.status.url,
+                platform: active.status.platform,
                 error: { message: error },
               });
             }
@@ -204,6 +177,37 @@ async function getTabHtml(tabId: number): Promise<string | null> {
   } catch (err) {
     return null;
   }
+}
+
+async function getActivePageStatus(): Promise<
+  { tab: chrome.tabs.Tab; status: PageStatus; source: 'content' | 'scripting' | 'url' } | null
+> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return null;
+  const url = tab.url ?? '';
+
+  // 1. 优先让内容脚本做 DOM 指纹探测
+  if (tab.id) {
+    try {
+      const status = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_STATUS' });
+      return { tab, status: status as PageStatus, source: 'content' };
+    } catch {
+      // 内容脚本未注入或出错时继续 fallback
+    }
+  }
+
+  // 2. Fallback：通过 scripting.executeScript 直接读取页面 HTML 做探测
+  if (tab.id) {
+    const html = await getTabHtml(tab.id);
+    if (html) {
+      const status = await getPageStatus(url, html);
+      return { tab, status, source: 'scripting' };
+    }
+  }
+
+  // 3. 最后只能按 URL 规则兜底
+  const status = await getPageStatus(url);
+  return { tab, status, source: 'url' };
 }
 
 async function recordHistory(
