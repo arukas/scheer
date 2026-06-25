@@ -111,6 +111,12 @@ describe('detectPlatformByHtml', () => {
     expect(detectPlatformByHtml(html)).toBe('shopify');
   });
 
+  it('detects Shopify by /cdn/shop/ script path on custom domain', () => {
+    const html =
+      '<html><head><script src="https://noomoriey.com/cdn/shop/t/4/assets/secondary.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('shopify');
+  });
+
   it('returns null when no known script marker', () => {
     const html = '<html><head><script src="https://example.com/app.js"></script></head></html>';
     expect(detectPlatformByHtml(html)).toBeNull();

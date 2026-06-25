@@ -125,8 +125,15 @@ export function detectPlatformByHtml(html: string): PlatformKey | null {
     return 'newshop';
   }
 
-  // Shopify：脚本 URI 包含 cdn/shopifycloud（或通用 Shopify CDN）
-  if (srcs.some((src) => src.includes('cdn/shopifycloud') || src.includes('cdn.shopify.com'))) {
+  // Shopify：脚本 URI 包含 cdn/shopifycloud、cdn.shopify.com 或 /cdn/shop/
+  if (
+    srcs.some(
+      (src) =>
+        src.includes('cdn/shopifycloud') ||
+        src.includes('cdn.shopify.com') ||
+        src.includes('/cdn/shop/')
+    )
+  ) {
     return 'shopify';
   }
 

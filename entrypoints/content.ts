@@ -9,18 +9,26 @@ export default defineContentScript({
   runAt: 'document_idle',
   async main() {
     const log = createLogger('content/main');
-    const status = await getPageStatus(location.href, document.documentElement.outerHTML);
 
-    log.debug('Content script 注入', { url: location.href });
-    log.info('页面状态', status);
-
+    // 先注册消息监听，确保即使后面的异步探测失败，popup/background 也能与本脚本通信
     onMessage(async (message, _sender, sendResponse) => {
       if (typeof message !== 'object' || !message.type) return;
 
       if (message.type === 'GET_PAGE_STATUS') {
-        const current = await getPageStatus(location.href, document.documentElement.outerHTML);
-        log.debug('响应 GET_PAGE_STATUS', current);
-        sendResponse(current);
+        try {
+          const current = await getPageStatus(location.href, document.documentElement.outerHTML);
+          log.debug('响应 GET_PAGE_STATUS', current);
+          sendResponse(current);
+        } catch (err) {
+          const error = err instanceof Error ? err.message : String(err);
+          log.error('GET_PAGE_STATUS 失败', { error });
+          sendResponse({
+            url: location.href,
+            platform: null,
+            canExtract: false,
+            reason: `探测失败：${error}`,
+          });
+        }
         return;
       }
 
@@ -62,5 +70,16 @@ export default defineContentScript({
         return;
       }
     });
+
+    try {
+      const status = await getPageStatus(location.href, document.documentElement.outerHTML);
+      log.debug('Content script 注入', { url: location.href });
+      log.info('页面状态', status);
+    } catch (err) {
+      log.error('Content script 初始化探测失败', {
+        url: location.href,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   },
 });

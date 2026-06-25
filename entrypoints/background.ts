@@ -43,7 +43,7 @@ export default defineBackground(() => {
           const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
           const url = tab?.url ?? '';
 
-          // 优先让内容脚本做 DOM 指纹探测（ShopLine / ShopBase / ShopLazza / XShopPy）
+          // 1. 优先让内容脚本做 DOM 指纹探测
           if (tab?.id) {
             try {
               const status = (await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_STATUS' })) as {
@@ -56,10 +56,22 @@ export default defineBackground(() => {
               sendResponse(status);
               break;
             } catch {
-              // 内容脚本未注入或出错时回退到后台探测
+              // 内容脚本未注入或出错时继续 fallback
             }
           }
 
+          // 2. Fallback：通过 scripting.executeScript 直接读取页面 HTML 做探测
+          if (tab?.id) {
+            const html = await getTabHtml(tab.id);
+            if (html) {
+              const status = await getPageStatus(url, html);
+              log.debug('GET_PAGE_STATUS (from scripting)', status);
+              sendResponse(status);
+              break;
+            }
+          }
+
+          // 3. 最后只能按 URL 规则兜底
           const status = await getPageStatus(url);
           log.debug('GET_PAGE_STATUS', status);
           sendResponse(status);
@@ -180,6 +192,19 @@ export default defineBackground(() => {
     }
   });
 });
+
+async function getTabHtml(tabId: number): Promise<string | null> {
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => document.documentElement?.outerHTML ?? '',
+    });
+    const html = result?.result;
+    return typeof html === 'string' && html.length > 0 ? html : null;
+  } catch (err) {
+    return null;
+  }
+}
 
 async function recordHistory(
   partial: Omit<HistoryItem, 'id' | 'created_at' | 'updated_at'>
