@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { sendMessage } from '../../src/shared/messaging';
 import type { Config, DebugLogs } from '../../src/shared/schema';
-import { resolveEndpoint } from '../../src/shared/api';
 import './style.css';
 
 function Options() {
@@ -44,35 +43,21 @@ function Options() {
     );
   }
 
-  function testConfig() {
+  async function testConfig() {
     if (!config) return;
-    const { base, create_product_endpoint, current_user_endpoint, secret } = config.server;
-    if (!secret) {
-      setStatus('测试失败：后端密钥不能为空');
-      return;
-    }
-    if (!create_product_endpoint || !current_user_endpoint) {
-      setStatus('测试失败：创建商品接口与用户信息接口不能为空');
-      return;
-    }
-
-    const createUrl = resolveEndpoint(base, create_product_endpoint);
-    const meUrl = resolveEndpoint(base, current_user_endpoint);
-    if (!createUrl || !meUrl) {
-      setStatus('测试失败：无法拼接出有效地址');
-      return;
-    }
-
+    setStatus('正在请求后端…');
     try {
-      const createParsed = new URL(createUrl);
-      const meParsed = new URL(meUrl);
-      if (createParsed.protocol !== 'https:' || meParsed.protocol !== 'https:') {
-        setStatus('测试失败：接口地址必须使用 HTTPS');
-        return;
+      const result = await sendMessage<
+        { success: true; data: unknown } | { success: false; error: string }
+      >({ type: 'TEST_CONFIG', payload: { config } });
+      if (result.success) {
+        const preview = JSON.stringify(result.data).slice(0, 240);
+        setStatus(`连接成功：${preview}`);
+      } else {
+        setStatus(`连接失败：${result.error}`);
       }
-      setStatus('格式校验通过（未实际调用后端）');
-    } catch {
-      setStatus('测试失败：接口地址不是有效 URL');
+    } catch (err) {
+      setStatus(`测试失败：${(err as Error).message}`);
     }
   }
 

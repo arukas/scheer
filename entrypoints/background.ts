@@ -14,7 +14,7 @@ import { createLogger } from '../src/shared/logger';
 import { onMessage } from '../src/shared/messaging';
 import { getPageStatus } from '../src/shared/platform';
 import type { PageStatus } from '../src/shared/platform';
-import { submitCreateProduct } from '../src/shared/api';
+import { submitCreateProduct, testBackendConnection } from '../src/shared/api';
 
 export default defineBackground(() => {
   const log = createLogger('background/main');
@@ -155,6 +155,22 @@ export default defineBackground(() => {
             // history 记录失败不影响主流程反馈
           }
 
+          sendResponse({ success: false, error });
+        }
+        break;
+      }
+
+      case 'TEST_CONFIG': {
+        try {
+          const { config } = (message as { payload: { config: import('../src/shared/schema').Config } }).payload;
+          if (!config.server.secret) {
+            throw new Error('后端密钥未配置');
+          }
+          const data = await testBackendConnection(config.server);
+          sendResponse({ success: true, data });
+        } catch (err) {
+          const error = err instanceof Error ? err.message : String(err);
+          log.error('TEST_CONFIG 失败', { error });
           sendResponse({ success: false, error });
         }
         break;

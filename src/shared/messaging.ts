@@ -16,7 +16,8 @@ export type MessageType =
   | 'CLEAR_DEBUG_LOGS'
   | 'EXPORT_DEBUG_LOGS'
   | 'EXTRACT_PRODUCT'
-  | 'CREATE_PRODUCT';
+  | 'CREATE_PRODUCT'
+  | 'TEST_CONFIG';
 
 export interface BaseMessage {
   type: MessageType;
@@ -60,6 +61,11 @@ export interface CreateProductMessage extends BaseMessage {
   type: 'CREATE_PRODUCT';
 }
 
+export interface TestConfigMessage extends BaseMessage {
+  type: 'TEST_CONFIG';
+  payload: { config: import('./schema').Config };
+}
+
 export type ScheerMessage =
   | GetPageStatusMessage
   | GetPageHtmlMessage
@@ -69,7 +75,8 @@ export type ScheerMessage =
   | ClearDebugLogsMessage
   | ExportDebugLogsMessage
   | ExtractProductMessage
-  | CreateProductMessage;
+  | CreateProductMessage
+  | TestConfigMessage;
 
 export type CreateProductResponse =
   | { success: true; data: CreateProductSuccessResponse }

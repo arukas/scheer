@@ -110,3 +110,56 @@ export async function submitCreateProduct(
     clearTimeout(timer);
   }
 }
+
+/**
+ * 测试后端连接：请求 current_user_endpoint，验证鉴权与连通性。
+ */
+export async function testBackendConnection(server: ServerConfig): Promise<unknown> {
+  const url = resolveEndpoint(server.base, server.current_user_endpoint);
+  if (!url) {
+    throw new Error('当前用户信息接口地址未配置');
+  }
+
+  const timeoutMs = server.timeout_ms ?? 30000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${server.secret}`,
+        Accept: 'application/json',
+      },
+      signal: controller.signal,
+    });
+
+    const text = await res.text();
+    const preview = text.trim().slice(0, 512);
+
+    if (!res.ok) {
+      let message = `连接失败：${res.status}`;
+      if (preview) {
+        try {
+          const errorData = JSON.parse(text) as { message?: string };
+          if (errorData.message) message = errorData.message;
+        } catch {
+          message += `（${preview}）`;
+        }
+      }
+      throw new Error(message);
+    }
+
+    if (!text.trim()) {
+      throw new Error('后端返回空响应体');
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`后端返回不是合法 JSON：${preview}`);
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}
