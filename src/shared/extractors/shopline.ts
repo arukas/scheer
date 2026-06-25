@@ -6,6 +6,7 @@
 
 import type { CreateProductPayload, PlatformCode, Product, ProductImage, ProductOption, ProductVariant } from '../schema';
 import { extractHandle } from '../platform';
+import { fetchJson } from '../fetch';
 
 const API_TIMEOUT_MS = 10000;
 
@@ -22,13 +23,11 @@ async function fetchShoplineProduct(url: string): Promise<unknown> {
   const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
   try {
-    const res = await fetch(apiUrl.toString(), {
+    return await fetchJson(apiUrl.toString(), {
       signal: controller.signal,
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     });
-    if (!res.ok) throw new Error(`ShopLine API 返回 ${res.status}`);
-    return await res.json();
   } finally {
     clearTimeout(timer);
   }

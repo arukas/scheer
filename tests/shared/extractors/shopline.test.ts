@@ -46,7 +46,7 @@ describe('extractShoplineProduct', () => {
   it('converts storefront API response to CreateProductPayload', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => sampleResponse,
+      text: async () => JSON.stringify(sampleResponse),
     });
 
     const payload = await extractShoplineProduct(
@@ -67,7 +67,7 @@ describe('extractShoplineProduct', () => {
   it('throws when API returns message without products', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ message: 'Not found' }),
+      text: async () => JSON.stringify({ message: 'Not found' }),
     });
 
     await expect(
@@ -76,7 +76,7 @@ describe('extractShoplineProduct', () => {
   });
 
   it('throws when fetch fails', async () => {
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 500 });
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500, text: async () => '' });
 
     await expect(
       extractShoplineProduct('https://shoplinedemo.myshopline.com/products/test')

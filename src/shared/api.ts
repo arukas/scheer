@@ -8,7 +8,6 @@
 import type {
   CreateProductPayload,
   CreateProductSuccessResponse,
-  CreateProductErrorResponse,
   ServerConfig,
 } from './schema';
 
@@ -70,21 +69,43 @@ export async function submitCreateProduct(
       signal: controller.signal,
     });
 
-    if (res.ok) {
-      const data = (await res.json()) as Partial<CreateProductSuccessResponse>;
-      if (!data.product_id || !data.log_id) {
-        throw new Error('后端返回格式异常');
+    const text = await res.text();
+    const preview = text.trim().slice(0, 512);
+
+    if (!res.ok) {
+      let message = `请求失败：${res.status}`;
+      if (preview) {
+        try {
+          const errorData = JSON.parse(text) as { message?: string };
+          if (errorData.message) message = errorData.message;
+        } catch {
+          message += `（${preview}）`;
+        }
       }
-      return {
-        product_id: data.product_id,
-        log_id: data.log_id,
-        user: data.user ?? { id: '', name: '' },
-        message: data.message,
-      };
+      throw new Error(message);
     }
 
-    const errorData = (await res.json().catch(() => ({}))) as Partial<CreateProductErrorResponse>;
-    throw new Error(errorData.message ?? `请求失败：${res.status}`);
+    if (!text.trim()) {
+      throw new Error('后端返回空响应体');
+    }
+
+    let data: Partial<CreateProductSuccessResponse>;
+    try {
+      data = JSON.parse(text) as Partial<CreateProductSuccessResponse>;
+    } catch {
+      throw new Error(`后端返回不是合法 JSON：${preview}`);
+    }
+
+    if (!data.product_id || !data.log_id) {
+      throw new Error('后端返回格式异常');
+    }
+
+    return {
+      product_id: data.product_id,
+      log_id: data.log_id,
+      user: data.user ?? { id: '', name: '' },
+      message: data.message,
+    };
   } finally {
     clearTimeout(timer);
   }
