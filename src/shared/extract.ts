@@ -4,9 +4,13 @@
  * 按平台把当前页面转换为 CreateProductPayload。
  */
 
+import { createLogger } from './logger';
 import type { CreateProductPayload, PlatformKey } from './schema';
 import { extractShopifyProduct } from './extractors/shopify';
+import { extractShoplineProduct } from './extractors/shopline';
 import { extractJsonLdProduct } from './extractors/jsonld';
+
+const log = createLogger('shared/extract');
 
 export async function extractProduct(
   url: string,
@@ -17,7 +21,13 @@ export async function extractProduct(
     case 'shopify':
       return extractShopifyProduct(url);
     case 'shopline':
-      return extractJsonLdProduct(url, 'shopline', doc);
+      try {
+        return await extractShoplineProduct(url);
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        log.warn('ShopLine API 采集失败，回退到 JSON-LD', { error });
+        return extractJsonLdProduct(url, 'shopline', doc);
+      }
     case 'shopbase':
     case 'shoplazza':
     case 'xshoppy':
