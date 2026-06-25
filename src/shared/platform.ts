@@ -138,17 +138,17 @@ export async function detectPlatform(url: string, html?: string): Promise<Platfo
   const byUrl = detectPlatformByUrl(url);
   if (byUrl) return byUrl;
 
-  // 2. 对 /products/<handle> 页面用 API 探测
+  // 2. 有 HTML 时优先做 HTML 指纹探测，避免把 ShopLine 误判去请求 Shopify .json
+  if (html) {
+    const byHtml = detectPlatformByHtml(html);
+    if (byHtml) return byHtml;
+  }
+
+  // 3. 对 /products/<handle> 页面用 API 探测（Shopify / NewShop）
   const { handle } = extractHandle(url);
   if (handle) {
     const byApi = await detectPlatformByApi(url);
     if (byApi) return byApi;
-  }
-
-  // 3. HTML 指纹探测 ShopLazza / ShopLine / ShopBase / XShopPy
-  if (html) {
-    const byHtml = detectPlatformByHtml(html);
-    if (byHtml) return byHtml;
   }
 
   return null;
