@@ -22,7 +22,9 @@ type RawObject = Record<string, unknown>;
 
 async function fetchShoplineProduct(url: string): Promise<unknown> {
   const { handle } = extractHandle(url);
-  if (!handle) throw new Error('无法从 URL 提取商品 handle');
+  if (!handle) {
+    throw new Error('当前页面暂时无法支持，待后续支持（无法从 URL 提取商品 handle）');
+  }
 
   const apiUrl = new URL('/api/product/products.json', url);
   apiUrl.searchParams.set('handle', handle);
