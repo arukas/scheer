@@ -128,16 +128,17 @@ function readCSettingsFromDoc(doc?: Document): unknown {
 }
 
 function getCSettings(doc?: Document): RawObject {
-  const fromWindow = readCSettingsFromWindow();
-  if (fromWindow && typeof fromWindow === 'object') {
-    log.debug('从 window.C_SETTINGS 读取到数据');
-    return fromWindow as RawObject;
-  }
-
+  // 页面初始化后 window.C_SETTINGS 可能被删除，优先从 <script> 标签解析
   const fromDoc = readCSettingsFromDoc(doc);
   if (fromDoc && typeof fromDoc === 'object') {
     log.debug('从 <script> 标签解析到 window.C_SETTINGS');
     return fromDoc as RawObject;
+  }
+
+  const fromWindow = readCSettingsFromWindow();
+  if (fromWindow && typeof fromWindow === 'object') {
+    log.debug('从 window.C_SETTINGS 读取到数据');
+    return fromWindow as RawObject;
   }
 
   throw new Error('页面未找到 window.C_SETTINGS');

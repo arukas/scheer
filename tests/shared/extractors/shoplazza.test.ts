@@ -111,10 +111,8 @@ describe('extractShoplazzaProduct', () => {
     }
   });
 
-  it('reads from window.C_SETTINGS and fetches product by resource_id', async () => {
-    (window as unknown as Record<string, unknown>).C_SETTINGS = JSON.parse(
-      JSON.stringify(cSettings)
-    );
+  it('reads from script tag and fetches product by resource_id', async () => {
+    const doc = createDocWithCSettings(cSettings);
     fetchMock.mockResolvedValueOnce(
       createFetchResponse({
         ok: true,
@@ -123,7 +121,7 @@ describe('extractShoplazzaProduct', () => {
       })
     );
 
-    const payload = await extractShoplazzaProduct('https://example.com/products/lachry');
+    const payload = await extractShoplazzaProduct('https://example.com/products/lachry', doc);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const calledUrl = fetchMock.mock.calls[0][0] as string;
@@ -146,8 +144,36 @@ describe('extractShoplazzaProduct', () => {
     expect(payload.product.variants[0].options).toEqual([{ name: 'Size', value: 'US 8' }]);
   });
 
-  it('falls back to parsing script tag when window object is absent', async () => {
-    const doc = createDocWithCSettings(cSettings);
+  it('prefers script tag over window.C_SETTINGS', async () => {
+    const docSettings = JSON.parse(JSON.stringify(cSettings));
+    docSettings.meta.page.resource_id = 'doc-resource-id';
+
+    const windowSettings = JSON.parse(JSON.stringify(cSettings));
+    windowSettings.meta.page.resource_id = 'window-resource-id';
+    (window as unknown as Record<string, unknown>).C_SETTINGS = windowSettings;
+
+    const doc = createDocWithCSettings(docSettings);
+    fetchMock.mockResolvedValueOnce(
+      createFetchResponse({
+        ok: true,
+        text: JSON.stringify({
+          data: {
+            products: [{ id: 'doc-resource-id', title: 'Doc Product', variants: [], images: [] }],
+          },
+        }),
+        contentType: 'application/json',
+      })
+    );
+
+    const payload = await extractShoplazzaProduct('https://example.com/products/lachry', doc);
+    expect(payload.source_product_id).toBe('doc-resource-id');
+    expect(payload.product.title).toBe('Doc Product');
+  });
+
+  it('falls back to window.C_SETTINGS when script tag is absent', async () => {
+    (window as unknown as Record<string, unknown>).C_SETTINGS = JSON.parse(
+      JSON.stringify(cSettings)
+    );
     fetchMock.mockResolvedValueOnce(
       createFetchResponse({
         ok: true,
@@ -156,7 +182,7 @@ describe('extractShoplazzaProduct', () => {
       })
     );
 
-    const payload = await extractShoplazzaProduct('https://example.com/products/lachry', doc);
+    const payload = await extractShoplazzaProduct('https://example.com/products/lachry');
     expect(payload.product.title).toBe('Lachry Sneakers');
   });
 
