@@ -179,13 +179,31 @@ function convertImages(mediaGallery: RawObject[], baseUrl: string | undefined): 
   return result;
 }
 
-function convertTags(tags: unknown): string[] | undefined {
-  if (Array.isArray(tags)) return tags.map(String);
-  if (typeof tags === 'string') {
-    const trimmed = tags.trim();
-    return trimmed ? trimmed.split(',').map((t) => t.trim()) : [];
+function convertTags(tags: unknown, categories: unknown): string[] | undefined {
+  const result = new Set<string>();
+
+  if (Array.isArray(tags)) {
+    tags.forEach((t) => result.add(String(t)));
+  } else if (typeof tags === 'string') {
+    tags
+      .trim()
+      .split(',')
+      .map((t) => t.trim())
+      .forEach((t) => {
+        if (t) result.add(t);
+      });
   }
-  return undefined;
+
+  if (Array.isArray(categories)) {
+    categories.forEach((cat) => {
+      if (cat && typeof cat === 'object') {
+        const name = toStringOrUndefined((cat as RawObject).name);
+        if (name) result.add(name);
+      }
+    });
+  }
+
+  return result.size > 0 ? Array.from(result) : undefined;
 }
 
 function convertOptions(configurableOptions: RawObject[]): ProductOption[] {
@@ -318,13 +336,16 @@ function convertProduct(raw: RawObject, state: RawObject, url: string): Product 
     variants[0].options = [{ name: 'Title', value: 'Default Title' }];
   }
 
+  const vendor = toStringOrUndefined(raw.vendor);
+  const productType = toStringOrUndefined(raw.productType ?? raw.type_id);
+
   return {
     title: String(raw.name ?? raw.title ?? ''),
     handle: toStringOrUndefined(raw.slug) ?? extractHandle(url).handle ?? undefined,
     description_html: toStringOrUndefined(raw.description),
-    vendor: toStringOrUndefined(raw.vendor),
-    product_type: toStringOrUndefined(raw.productType),
-    tags: convertTags(raw.tags),
+    vendor: vendor || undefined,
+    product_type: productType || undefined,
+    tags: convertTags(raw.tags, raw.category),
     options: productOptions,
     published_scope: undefined,
     variants,

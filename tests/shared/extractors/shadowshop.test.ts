@@ -34,7 +34,16 @@ const sampleState = {
       final_price: 29.99,
       special_price: 29.99,
       weight_unit: 'lb',
-      tags: ['sleep', 'apnea'],
+      type_id: 'configurable',
+      tags: [],
+      category: [
+        {
+          store_id: '69aea180a76e13000a437ccd',
+          category_id: '69aea1827772815db585aeaa',
+          name: 'Top sellers',
+          slug: 'top-sellers',
+        },
+      ],
       media_gallery: [
         {
           vid: null,
@@ -121,7 +130,8 @@ describe('extractShadowshopProduct', () => {
     expect(payload.product.title).toBe(' 💥AirFlow Jaw Strap💥');
     expect(payload.product.handle).toBe('airflow-jaw-strap');
     expect(payload.product.description_html).toBe('<p>Product description.</p>');
-    expect(payload.product.tags).toEqual(['sleep', 'apnea']);
+    expect(payload.product.product_type).toBe('configurable');
+    expect(payload.product.tags).toEqual(['Top sellers']);
 
     expect(payload.product.images).toHaveLength(1);
     expect(payload.product.images[0].src).toBe(
