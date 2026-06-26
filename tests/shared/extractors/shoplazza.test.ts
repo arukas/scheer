@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, type Mock, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, type Mock, beforeEach } from 'vitest';
 import { extractShoplazzaProduct } from '@/shared/extractors/shoplazza';
 
 vi.mock('@/shared/storage', () => ({
@@ -30,24 +30,13 @@ function createFetchResponse(overrides: {
   };
 }
 
-const cSettings = {
-  image_domain: '//img.staticdj.com/',
-  meta: {
-    page: {
-      template_name: 'product',
-      resource_id: 'f8259edf-b3c2-420c-b445-377bfccc8b23',
-    },
-  },
-  shop: {
-    shop_id: '254906',
-  },
-};
+const PRODUCT_ID = 'f8259edf-b3c2-420c-b445-377bfccc8b23';
 
 const sampleResponse = {
   data: {
     products: [
       {
-        id: 'f8259edf-b3c2-420c-b445-377bfccc8b23',
+        id: PRODUCT_ID,
         title: 'Lachry Sneakers',
         handle: 'lachry',
         description: '<p>Comfortable sneakers.</p>',
@@ -84,35 +73,26 @@ const sampleResponse = {
   },
 };
 
-function createDocWithCSettings(settings: unknown): Document {
+function createDocWithProductJson(productId: string): Document {
   const doc = document.implementation.createHTMLDocument('ShopLazza Product');
   const script = doc.createElement('script');
-  script.textContent = `window.C_SETTINGS = ${JSON.stringify(settings)};`;
+  script.id = 'product-json';
+  script.setAttribute('data-id', productId);
+  script.setAttribute('type', 'application/json');
   doc.head.appendChild(script);
   return doc;
 }
 
 describe('extractShoplazzaProduct', () => {
   let fetchMock: Mock;
-  let originalCSettings: unknown;
 
   beforeEach(() => {
     fetchMock = vi.fn();
     global.fetch = fetchMock;
-    originalCSettings = (window as unknown as Record<string, unknown>).C_SETTINGS;
-    delete (window as unknown as Record<string, unknown>).C_SETTINGS;
   });
 
-  afterEach(() => {
-    if (originalCSettings !== undefined) {
-      (window as unknown as Record<string, unknown>).C_SETTINGS = originalCSettings;
-    } else {
-      delete (window as unknown as Record<string, unknown>).C_SETTINGS;
-    }
-  });
-
-  it('reads from script tag and fetches product by resource_id', async () => {
-    const doc = createDocWithCSettings(cSettings);
+  it('reads product id from <script id="product-json" data-id="..."> and fetches product', async () => {
+    const doc = createDocWithProductJson(PRODUCT_ID);
     fetchMock.mockResolvedValueOnce(
       createFetchResponse({
         ok: true,
@@ -126,12 +106,12 @@ describe('extractShoplazzaProduct', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const calledUrl = fetchMock.mock.calls[0][0] as string;
     expect(calledUrl).toContain('/api/product/list');
-    expect(calledUrl).toContain('ids%5B%5D=f8259edf-b3c2-420c-b445-377bfccc8b23');
+    expect(calledUrl).toContain(`ids%5B%5D=${PRODUCT_ID}`);
     expect(calledUrl).toContain('limit=1');
     expect(calledUrl).toContain('page=1');
 
     expect(payload.platform).toBe('shoplazza');
-    expect(payload.source_product_id).toBe('f8259edf-b3c2-420c-b445-377bfccc8b23');
+    expect(payload.source_product_id).toBe(PRODUCT_ID);
     expect(payload.product.title).toBe('Lachry Sneakers');
     expect(payload.product.handle).toBe('lachry');
     expect(payload.product.vendor).toBe('Romanticed');
@@ -144,66 +124,33 @@ describe('extractShoplazzaProduct', () => {
     expect(payload.product.variants[0].options).toEqual([{ name: 'Size', value: 'US 8' }]);
   });
 
-  it('prefers script tag over window.C_SETTINGS', async () => {
-    const docSettings = JSON.parse(JSON.stringify(cSettings));
-    docSettings.meta.page.resource_id = 'doc-resource-id';
-
-    const windowSettings = JSON.parse(JSON.stringify(cSettings));
-    windowSettings.meta.page.resource_id = 'window-resource-id';
-    (window as unknown as Record<string, unknown>).C_SETTINGS = windowSettings;
-
-    const doc = createDocWithCSettings(docSettings);
-    fetchMock.mockResolvedValueOnce(
-      createFetchResponse({
-        ok: true,
-        text: JSON.stringify({
-          data: {
-            products: [{ id: 'doc-resource-id', title: 'Doc Product', variants: [], images: [] }],
-          },
-        }),
-        contentType: 'application/json',
-      })
-    );
-
-    const payload = await extractShoplazzaProduct('https://example.com/products/lachry', doc);
-    expect(payload.source_product_id).toBe('doc-resource-id');
-    expect(payload.product.title).toBe('Doc Product');
-  });
-
-  it('falls back to window.C_SETTINGS when script tag is absent', async () => {
-    (window as unknown as Record<string, unknown>).C_SETTINGS = JSON.parse(
-      JSON.stringify(cSettings)
-    );
-    fetchMock.mockResolvedValueOnce(
-      createFetchResponse({
-        ok: true,
-        text: JSON.stringify(sampleResponse),
-        contentType: 'application/json',
-      })
-    );
-
-    const payload = await extractShoplazzaProduct('https://example.com/products/lachry');
-    expect(payload.product.title).toBe('Lachry Sneakers');
-  });
-
-  it('throws when C_SETTINGS is missing', async () => {
+  it('throws when <script id="product-json"> is missing', async () => {
     const doc = document.implementation.createHTMLDocument('Empty');
     await expect(
       extractShoplazzaProduct('https://example.com/products/lachry', doc)
-    ).rejects.toThrow('页面未找到 window.C_SETTINGS');
+    ).rejects.toThrow('页面未找到 <script id="product-json">');
   });
 
-  it('throws when resource_id is missing', async () => {
-    const badSettings = JSON.parse(JSON.stringify(cSettings));
-    delete badSettings.meta.page.resource_id;
-    const doc = createDocWithCSettings(badSettings);
+  it('throws when data-id is missing', async () => {
+    const doc = document.implementation.createHTMLDocument('ShopLazza Product');
+    const script = doc.createElement('script');
+    script.id = 'product-json';
+    script.setAttribute('type', 'application/json');
+    doc.head.appendChild(script);
+
     await expect(
       extractShoplazzaProduct('https://example.com/products/lachry', doc)
-    ).rejects.toThrow('未找到 meta.page.resource_id');
+    ).rejects.toThrow('<script id="product-json"> 缺少 data-id 属性');
+  });
+
+  it('throws when doc is not provided', async () => {
+    await expect(extractShoplazzaProduct('https://example.com/products/lachry')).rejects.toThrow(
+      '页面未找到 <script id="product-json">'
+    );
   });
 
   it('throws when API returns empty list', async () => {
-    const doc = createDocWithCSettings(cSettings);
+    const doc = createDocWithProductJson(PRODUCT_ID);
     fetchMock.mockResolvedValueOnce(
       createFetchResponse({
         ok: true,

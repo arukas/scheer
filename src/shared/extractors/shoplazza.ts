@@ -1,10 +1,9 @@
 /**
  * ShopLazza 商品抓取器
  *
- * 1. 从页面读取 window.C_SETTINGS（或从 <script> 标签解析）。
- * 2. 取 meta.page.resource_id 作为商品 ID。
- * 3. 请求 /api/product/list?ids[]=RESOURCE_ID&limit=1&page=1 取商品数据。
- * 4. 转换为通用 Product。
+ * 1. 从 <script id="product-json" data-id="..."> 读取商品 ID。
+ * 2. 请求 /api/product/list?ids[]=ID&limit=1&page=1 取商品数据。
+ * 3. 转换为通用 Product。
  */
 
 import type {
@@ -44,114 +43,22 @@ function normalizeSrc(src: string): string {
   return src;
 }
 
-function parseJsonSafely(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-}
-
-function readCSettingsFromWindow(): unknown {
-  const win = typeof window !== 'undefined' ? (window as unknown as RawObject) : undefined;
-  return win?.C_SETTINGS;
-}
-
-/**
- * 从 <script> 标签文本中解析 window.C_SETTINGS。
- * 这里用平衡括号找到赋值后的对象字面量。
- */
-function extractCSettingsFromScript(text: string): unknown {
-  const marker = 'window.C_SETTINGS';
-  let idx = text.indexOf(marker);
-  if (idx < 0) idx = text.toLowerCase().indexOf('window.c_settings');
-  if (idx < 0) return undefined;
-
-  let cursor = idx + marker.length;
-  const end = text.length;
-  while (cursor < end && /\s|=/.test(text[cursor])) cursor++;
-  if (cursor >= end || text[cursor] !== '{') return undefined;
-
-  let depth = 0;
-  let inString = false;
-  let stringChar = '';
-  let escape = false;
-  const start = cursor;
-
-  for (; cursor < end; cursor++) {
-    const ch = text[cursor];
-    if (inString) {
-      if (escape) {
-        escape = false;
-        continue;
-      }
-      if (ch === '\\') {
-        escape = true;
-        continue;
-      }
-      if (ch === stringChar) {
-        inString = false;
-      }
-      continue;
-    }
-
-    if (ch === '"' || ch === "'" || ch === '`') {
-      inString = true;
-      stringChar = ch;
-      continue;
-    }
-
-    if (ch === '{') {
-      depth++;
-    } else if (ch === '}') {
-      depth--;
-      if (depth === 0) {
-        cursor++;
-        break;
-      }
-    }
+function extractProductIdFromDoc(doc?: Document): string {
+  if (!doc) {
+    throw new Error('页面未找到 <script id="product-json">');
   }
 
-  const jsonText = text.slice(start, cursor);
-  return parseJsonSafely(jsonText);
-}
-
-function readCSettingsFromDoc(doc?: Document): unknown {
-  if (!doc) return undefined;
-  const scripts = doc.querySelectorAll('script');
-  for (const script of scripts) {
-    const text = script.textContent ?? '';
-    const settings = extractCSettingsFromScript(text);
-    if (settings !== undefined) return settings;
-  }
-  return undefined;
-}
-
-function getCSettings(doc?: Document): RawObject {
-  // 页面初始化后 window.C_SETTINGS 可能被删除，优先从 <script> 标签解析
-  const fromDoc = readCSettingsFromDoc(doc);
-  if (fromDoc && typeof fromDoc === 'object') {
-    log.debug('从 <script> 标签解析到 window.C_SETTINGS');
-    return fromDoc as RawObject;
+  const script = doc.querySelector('script#product-json');
+  if (!script) {
+    throw new Error('页面未找到 <script id="product-json">');
   }
 
-  const fromWindow = readCSettingsFromWindow();
-  if (fromWindow && typeof fromWindow === 'object') {
-    log.debug('从 window.C_SETTINGS 读取到数据');
-    return fromWindow as RawObject;
+  const dataId = script.getAttribute('data-id');
+  if (!dataId) {
+    throw new Error('<script id="product-json"> 缺少 data-id 属性');
   }
 
-  throw new Error('页面未找到 window.C_SETTINGS');
-}
-
-function extractResourceId(settings: RawObject): string {
-  const meta = (settings.meta ?? {}) as RawObject;
-  const page = (meta.page ?? {}) as RawObject;
-  const resourceId = toStringOrUndefined(page.resource_id);
-  if (!resourceId) {
-    throw new Error('window.C_SETTINGS 中未找到 meta.page.resource_id');
-  }
-  return resourceId;
+  return dataId;
 }
 
 async function fetchShoplazzaProduct(url: string, resourceId: string): Promise<unknown> {
@@ -346,9 +253,8 @@ export async function extractShoplazzaProduct(
   url: string,
   doc?: Document
 ): Promise<CreateProductPayload> {
-  const settings = getCSettings(doc);
-  const resourceId = extractResourceId(settings);
-  const data = await fetchShoplazzaProduct(url, resourceId);
+  const productId = extractProductIdFromDoc(doc);
+  const data = await fetchShoplazzaProduct(url, productId);
 
   const products = findProductList(data);
   if (products.length === 0) {
@@ -361,7 +267,7 @@ export async function extractShoplazzaProduct(
   return {
     platform,
     source_url: url,
-    source_product_id: toStringOrUndefined(rawProduct.id) ?? resourceId,
+    source_product_id: toStringOrUndefined(rawProduct.id) ?? productId,
     product: convertProduct(rawProduct, url),
   };
 }
