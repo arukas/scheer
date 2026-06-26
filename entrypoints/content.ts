@@ -8,6 +8,13 @@ export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
   async main() {
+    // 防止重复初始化：扩展重新注入 content script 时避免重复注册监听器
+    const win = window as unknown as Record<string, unknown>;
+    if (win.__SCHEER_CONTENT_INITIALIZED__) {
+      return;
+    }
+    win.__SCHEER_CONTENT_INITIALIZED__ = true;
+
     const log = createLogger('content/main');
 
     // 先注册消息监听，确保即使后面的异步探测失败，popup/background 也能与本脚本通信

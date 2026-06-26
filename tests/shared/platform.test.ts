@@ -131,6 +131,12 @@ describe('detectPlatformByHtml', () => {
     expect(detectPlatformByHtml(html)).toBe('shopify');
   });
 
+  it('detects WordPress by wp-content in head link href', () => {
+    const html =
+      '<html><head><link rel="stylesheet" href="/wp-content/plugins/elementor/assets/css/frontend.css"/></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('wordpress');
+  });
+
   it('returns null when no known script marker', () => {
     const html = '<html><head><script src="https://example.com/app.js"></script></head></html>';
     expect(detectPlatformByHtml(html)).toBeNull();

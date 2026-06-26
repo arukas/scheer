@@ -20,7 +20,8 @@ export type PlatformKey =
   | 'shopline'
   | 'xshoppy'
   | 'shoplazza'
-  | 'tiktok';
+  | 'tiktok'
+  | 'wordpress';
 
 /** 提交给后端时使用的平台代码（newshop 在后端可能对应 wshop） */
 export type PlatformCode = PlatformKey | 'wshop';

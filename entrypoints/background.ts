@@ -127,12 +127,12 @@ export default defineBackground(() => {
           }
 
           log.info('请求内容脚本采集商品', { url: pageStatus.url, platform: pageStatus.platform });
-          const extractResponse = (await chrome.tabs.sendMessage(tab.id, {
+          const extractResponse = await sendToContentScript<
+            { success: true; payload: CreateProductPayload } | { success: false; error: string }
+          >(tab.id, {
             type: 'EXTRACT_PRODUCT',
             payload: { platform: pageStatus.platform },
-          })) as
-            | { success: true; payload: CreateProductPayload }
-            | { success: false; error: string };
+          });
 
           if (!extractResponse.success) {
             throw new Error(extractResponse.error || '内容脚本采集失败');
@@ -203,69 +203,96 @@ export default defineBackground(() => {
         return;
     }
   });
-});
 
-async function getTabHtml(tabId: number): Promise<string | null> {
-  try {
-    const [result] = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => document.documentElement?.outerHTML ?? '',
-    });
-    const html = result?.result;
-    return typeof html === 'string' && html.length > 0 ? html : null;
-  } catch {
-    return null;
-  }
-}
-
-async function getActivePageStatus(): Promise<{
-  tab: chrome.tabs.Tab;
-  status: PageStatus;
-  source: 'content' | 'scripting' | 'url';
-} | null> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab) return null;
-  const url = tab.url ?? '';
-
-  // 1. 优先让内容脚本做 DOM 指纹探测
-  if (tab.id) {
+  async function sendToContentScript<T>(tabId: number, message: unknown, retries = 1): Promise<T> {
+    const CONTENT_SCRIPT_PATH = 'content-scripts/content.js';
     try {
-      const status = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_STATUS' });
-      return { tab, status: status as PageStatus, source: 'content' };
+      return (await chrome.tabs.sendMessage(tabId, message)) as T;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('Receiving end does not exist') && retries > 0) {
+        log.warn('内容脚本未响应，尝试重新注入', { tabId, error: errorMessage });
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId },
+            files: [CONTENT_SCRIPT_PATH],
+          });
+          // 等待脚本初始化完成
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          return sendToContentScript<T>(tabId, message, retries - 1);
+        } catch (injectErr) {
+          const injectError = injectErr instanceof Error ? injectErr.message : String(injectErr);
+          throw new Error(`内容脚本重新注入失败：${injectError}`, { cause: injectErr });
+        }
+      }
+      throw new Error(errorMessage, { cause: err });
+    }
+  }
+
+  async function getTabHtml(tabId: number): Promise<string | null> {
+    try {
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => document.documentElement?.outerHTML ?? '',
+      });
+      const html = result?.result;
+      return typeof html === 'string' && html.length > 0 ? html : null;
     } catch {
-      // 内容脚本未注入或出错时继续 fallback
+      return null;
     }
   }
 
-  // 2. Fallback：通过 scripting.executeScript 直接读取页面 HTML 做探测
-  if (tab.id) {
-    const html = await getTabHtml(tab.id);
-    if (html) {
-      const status = await getPageStatus(url, html);
-      return { tab, status, source: 'scripting' };
+  async function getActivePageStatus(): Promise<{
+    tab: chrome.tabs.Tab;
+    status: PageStatus;
+    source: 'content' | 'scripting' | 'url';
+  } | null> {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) return null;
+    const url = tab.url ?? '';
+
+    // 1. 优先让内容脚本做 DOM 指纹探测
+    if (tab.id) {
+      try {
+        const status = await sendToContentScript<PageStatus>(tab.id, {
+          type: 'GET_PAGE_STATUS',
+        });
+        return { tab, status, source: 'content' };
+      } catch {
+        // 内容脚本未注入或出错时继续 fallback
+      }
     }
+
+    // 2. Fallback：通过 scripting.executeScript 直接读取页面 HTML 做探测
+    if (tab.id) {
+      const html = await getTabHtml(tab.id);
+      if (html) {
+        const status = await getPageStatus(url, html);
+        return { tab, status, source: 'scripting' };
+      }
+    }
+
+    // 3. 最后只能按 URL 规则兜底
+    const status = await getPageStatus(url);
+    return { tab, status, source: 'url' };
   }
 
-  // 3. 最后只能按 URL 规则兜底
-  const status = await getPageStatus(url);
-  return { tab, status, source: 'url' };
-}
+  async function recordHistory(
+    partial: Omit<HistoryItem, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    const id =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-async function recordHistory(
-  partial: Omit<HistoryItem, 'id' | 'created_at' | 'updated_at'>
-): Promise<void> {
-  const now = new Date().toISOString();
-  const id =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const item: HistoryItem = {
+      ...partial,
+      id,
+      created_at: now,
+      updated_at: now,
+    } as HistoryItem;
 
-  const item: HistoryItem = {
-    ...partial,
-    id,
-    created_at: now,
-    updated_at: now,
-  } as HistoryItem;
-
-  await appendHistory(item);
-}
+    await appendHistory(item);
+  }
+});

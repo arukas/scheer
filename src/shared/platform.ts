@@ -135,6 +135,16 @@ function extractScriptSrcs(html: string): string[] {
   return srcs;
 }
 
+function extractLinkHrefs(html: string): string[] {
+  const hrefs: string[] = [];
+  const regex = /<link[^>]+href\s*=\s*["']([^"']+)["']/gi;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(html)) !== null) {
+    hrefs.push(match[1].toLowerCase());
+  }
+  return hrefs;
+}
+
 export function detectPlatformByHtml(html: string): PlatformKey | null {
   const srcs = extractScriptSrcs(html);
 
@@ -158,6 +168,12 @@ export function detectPlatformByHtml(html: string): PlatformKey | null {
     )
   ) {
     return 'shopify';
+  }
+
+  // WordPress：head 中 link href 包含 wp-content（主题/插件资源路径）
+  const linkHrefs = extractLinkHrefs(html);
+  if (linkHrefs.some((href) => href.includes('wp-content'))) {
+    return 'wordpress';
   }
 
   return null;

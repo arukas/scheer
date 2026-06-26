@@ -8,6 +8,7 @@ import { createLogger } from './logger';
 import type { CreateProductPayload, PlatformKey } from './schema';
 import { extractShopifyProduct } from './extractors/shopify';
 import { extractShoplineProduct } from './extractors/shopline';
+import { extractNewshopProduct } from './extractors/newshop';
 import { extractJsonLdProduct } from './extractors/jsonld';
 
 const log = createLogger('shared/extract');
@@ -28,11 +29,13 @@ export async function extractProduct(
         log.warn('ShopLine API 采集失败，回退到 JSON-LD', { error });
         return extractJsonLdProduct(url, 'shopline', doc);
       }
+    case 'newshop':
+      return extractNewshopProduct(url);
     case 'shopbase':
     case 'shoplazza':
     case 'xshoppy':
-    case 'newshop':
     case 'tiktok':
+    case 'wordpress':
       throw new Error(`平台 ${platform} 识别成功，但采集器尚未实现`);
     default:
       throw new Error(`暂不支持平台：${platform}`);

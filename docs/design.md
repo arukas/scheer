@@ -42,19 +42,20 @@
 
 ### 2.1 平台清单
 
-| 平台            | 类型      | 说明                     |
-| --------------- | --------- | ------------------------ |
-| **Shopify**     | SaaS 建站 | 行业基准，结构最规整     |
-| **NewShop**     | SaaS 建站 | NewShop / WShop 自建站   |
-| **ShopBase**    | SaaS 建站 | POD / 电商建站           |
-| **ShopLine**    | SaaS 建站 |                          |
-| **XShopPy**     | SaaS 建站 |                          |
-| **ShopLazza**   | SaaS 建站 |                          |
-| **TikTok Shop** | 社交电商  | `shop.tiktok.com` 商品页 |
+| 平台            | 类型      | 说明                                             |
+| --------------- | --------- | ------------------------------------------------ |
+| **Shopify**     | SaaS 建站 | 行业基准，结构最规整                             |
+| **NewShop**     | SaaS 建站 | NewShop / WShop 自建站                           |
+| **ShopBase**    | SaaS 建站 | POD / 电商建站                                   |
+| **ShopLine**    | SaaS 建站 |                                                  |
+| **XShopPy**     | SaaS 建站 |                                                  |
+| **ShopLazza**   | SaaS 建站 |                                                  |
+| **TikTok Shop** | 社交电商  | `shop.tiktok.com` 商品页                         |
+| **WordPress**   | 自建站    | WooCommerce / Elementor 等，识别到即标记为未实现 |
 
-> ⚠️ **以上 7 个平台各自独立，互不共用抓取逻辑。** 不要假设 NewShop / ShopBase / ShopLine / XShopPy / ShopLazza 兼容 Shopify 的接口或 DOM。既有 PHP 参考项目已覆盖 `Shopify / NewShop / ShopBase / ShopLine / XShopPy / ShopLazza` 6 个平台；`TikTok` 是本扩展新增适配。
+> ⚠️ **以上 8 个平台各自独立，互不共用抓取逻辑。** 不要假设 NewShop / ShopBase / ShopLine / XShopPy / ShopLazza / WordPress 兼容 Shopify 的接口或 DOM。既有 PHP 参考项目已覆盖 `Shopify / NewShop / ShopBase / ShopLine / XShopPy / ShopLazza` 6 个平台；`TikTok / WordPress` 是本扩展新增适配或识别项。
 
-### 2.2 七个独立抓取器
+### 2.2 八个独立抓取器 / 识别器
 
 每个平台是一个独立抓取器，各自维护：**平台识别规则、数据获取入口、商品字段转换、评论采集方式**。抓取器之间不继承、不共用 Shopify 假设。
 
@@ -67,6 +68,7 @@
 | **XShopPy**     | ✅ 页面读 `input.product-id`（`body > div.PageContainer.J-PageContainer > input.product-id`）→ **POST** `/buyer/product/pop-detail`（JSON body: `product_id`）                                        | v2                 |
 | **ShopLazza**   | ✅ **混合**：页面 `<input type="hidden" name="product_id">` → `/api/products/{id}` 取主体；详情描述读 DOM `.product-info__desc-tab-content`；API 图片 `src` 前补 `https:`，详情 HTML 懒加载属性需清洗 | v2                 |
 | **TikTok Shop** | ✅ DOM `<script id="__MODERN_ROUTER_DATA__">` 取 JSON                                                                                                                                                 | v2                 |
+| **WordPress**   | ✅ **HTML 识别**：`<head>` 中 `<link href>` 包含 `wp-content` 即识别为 WordPress；采集器待实现                                                                                                        | 待实现             |
 
 > 评论入口全部延后到 v2。
 
@@ -465,10 +467,11 @@ v1 不定义。评论等待 v2。
 | ShopLine  | `shopline`  |
 | ShopBase  | `shopbase`  |
 | TikTok    | `tiktok`    |
+| WordPress | `wordpress` |
 | Internal  | `内部服务`  |
 | Unknown   | `未知平台`  |
 
-扩展内部建议仍使用小写英文 key（`shopify/newshop/shopbase/shopline/xshoppy/shoplazza/tiktok`）；提交给后端时如需兼容旧 PHP，可在发送层把 NewShop 转为 `wshop`。
+扩展内部建议仍使用小写英文 key（`shopify/newshop/shopbase/shopline/xshoppy/shoplazza/tiktok/wordpress`）；提交给后端时如需兼容旧 PHP，可在发送层把 NewShop 转为 `wshop`。
 
 ### 7.4 参考项目里的服务端专属路径
 
@@ -590,7 +593,7 @@ Chrome 持续收紧非商店扩展，若未来开发者模式被进一步限制�
 
 1. ✅ 私有化发布，不上架。
 2. ✅ v1 采集商品；评论等待 v2。
-3. ✅ 平台：Shopify / NewShop / ShopBase / ShopLine / XShopPy / ShopLazza / TikTok。
+3. ✅ 平台识别：Shopify / NewShop / ShopBase / ShopLine / XShopPy / ShopLazza / TikTok / WordPress（WordPress 仅识别，采集器待实现）。
 4. ✅ 仅监控商品详情页候选；不做列表页 / 集合页批量采集。
 5. ✅ 插件自动监控符合 URL 规则的页面并判断平台 / 可抓状态；创建商品必须用户手动点击。
 6. ✅ 提交前可做只读预览；不做复杂编辑器 / 字段映射 UI。

@@ -197,7 +197,8 @@
 | Shopify   | `src/shared/extractors/shopify.ts`  | ✅ 已兼容 |
 | ShopLine  | `src/shared/extractors/shopline.ts` | ✅ 已兼容 |
 | JSON-LD   | `src/shared/extractors/jsonld.ts`   | ✅ 已兼容 |
-| NewShop   | 未实现                              | 设计中    |
+| NewShop   | `src/shared/extractors/newshop.ts`  | ✅ 已兼容 |
+| WordPress | 仅识别，采集器待实现                | 识别项    |
 | ShopBase  | 未实现                              | 设计中    |
 | XShopPy   | 未实现                              | 设计中    |
 | ShopLazza | 未实现                              | 设计中    |
