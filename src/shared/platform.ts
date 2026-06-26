@@ -188,6 +188,14 @@ export function detectPlatformByHtml(html: string): PlatformKey | null {
     return 'shadowshop';
   }
 
+  // ShopLazza：脚本 host 包含 shoplazza.com / staticdj.com，或页面存在 window.C_SETTINGS
+  if (
+    srcs.some((src) => src.includes('shoplazza.com') || src.includes('staticdj.com')) ||
+    html.toLowerCase().includes('window.c_settings')
+  ) {
+    return 'shoplazza';
+  }
+
   return null;
 }
 
