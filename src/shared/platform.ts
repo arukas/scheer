@@ -153,8 +153,8 @@ export function detectPlatformByHtml(html: string): PlatformKey | null {
     return 'shopline';
   }
 
-  // NewShop：脚本 host 包含 techcloudclub.com
-  if (srcs.some((src) => src.includes('techcloudclub.com'))) {
+  // NewShop：脚本 host 包含 techcloudclub.com 或 cloudfastin.top
+  if (srcs.some((src) => src.includes('techcloudclub.com') || src.includes('cloudfastin.top'))) {
     return 'newshop';
   }
 
