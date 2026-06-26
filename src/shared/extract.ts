@@ -36,6 +36,7 @@ export async function extractProduct(
     case 'xshoppy':
     case 'tiktok':
     case 'wordpress':
+    case 'shadowshop':
       throw new Error(`平台 ${platform} 识别成功，但采集器尚未实现`);
     default:
       throw new Error(`暂不支持平台：${platform}`);

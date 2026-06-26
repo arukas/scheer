@@ -149,6 +149,18 @@ describe('detectPlatformByHtml', () => {
     expect(detectPlatformByHtml(html)).toBe('wordpress');
   });
 
+  it('detects ShadowShop by storedfilezone.com script host', () => {
+    const html =
+      '<html><head><script src="https://cdn.storedfilezone.com/static/app.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('shadowshop');
+  });
+
+  it('detects ShadowShop by plfaib.com script host', () => {
+    const html =
+      '<html><head><script src="https://cdn.plfaib.com/static/app.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('shadowshop');
+  });
+
   it('returns null when no known script marker', () => {
     const html = '<html><head><script src="https://example.com/app.js"></script></head></html>';
     expect(detectPlatformByHtml(html)).toBeNull();

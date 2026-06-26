@@ -183,6 +183,11 @@ export function detectPlatformByHtml(html: string): PlatformKey | null {
     return 'wordpress';
   }
 
+  // ShadowShop：脚本 host 包含 storedfilezone.com 或 plfaib.com
+  if (srcs.some((src) => src.includes('storedfilezone.com') || src.includes('plfaib.com'))) {
+    return 'shadowshop';
+  }
+
   return null;
 }
 
