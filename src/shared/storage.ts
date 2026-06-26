@@ -70,8 +70,20 @@ export async function clearDebugLogs(): Promise<void> {
   await setDebugLogs(logs);
 }
 
+/**
+ * 导出日志为 NDJSON（Newline Delimited JSON）格式，文件后缀建议 .log。
+ * 第一行为元数据，之后每一行是一个 DebugLogEntry JSON 对象。
+ */
 export function exportDebugLogs(logs: DebugLogs): string {
-  return JSON.stringify(logs, null, 2);
+  const meta = {
+    type: 'scheer-debug-logs',
+    exported_at: new Date().toISOString(),
+    enabled: logs.enabled,
+    persist: logs.persist,
+    maxEntries: logs.maxEntries,
+    count: logs.entries.length,
+  };
+  return [JSON.stringify(meta), ...logs.entries.map((entry) => JSON.stringify(entry))].join('\n');
 }
 
 // ============================================================================

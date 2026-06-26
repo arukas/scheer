@@ -3,35 +3,36 @@
 本文档汇总 7 个目标平台的数据入口、实现状态与已知限制，供开发者快速查阅。
 
 > 状态说明：
+>
 > - `已设计`：方案已在 `docs/design.md` §2 / §7 中定义。
 > - `待实现`：代码目录尚未创建。
 > - `已验证`：已在真实商品页手动验证通过。
 
 ## 平台总览
 
-| 平台 | 类型 | 数据入口 | MAIN world | 状态 | 备注 |
-| --- | --- | --- | --- | --- | --- |
-| Shopify | SaaS 建站 | `/products/<handle>.json` | 否 | 已设计 / 待实现 | 结构最规整，优先实现 |
-| NewShop | SaaS 建站 | URL 改写 `/api/store/products/<handle>` | 否 | 已设计 / 待实现 | PHP 另有服务端 fast path，扩展不实现 |
-| ShopBase | SaaS 建站 | `window.__INITIAL_STATE__` | 是 | 已设计 / 待实现 | 需 MAIN world 桥 |
-| ShopLine | SaaS 建站 | `window.__PRELOAD_STATE__.product` | 是 | 已设计 / 待实现 | 详情优先 DOM `.mce-content-body` |
-| XShopPy | SaaS 建站 | POST `/buyer/product/pop-detail` | 否 | 已设计 / 待实现 | 需先读 `input.product-id` |
-| ShopLazza | SaaS 建站 | `/api/products/{id}` + DOM 详情 | 否 | 已设计 / 待实现 | API 图片补 `https:`，HTML 清洗懒加载 |
-| TikTok Shop | 社交电商 | `<script id="__MODERN_ROUTER_DATA__">` | 否 | 已设计 / 待实现 | 区域限制 / captcha 需给出明确失败原因 |
+| 平台        | 类型      | 数据入口                                | MAIN world | 状态            | 备注                                  |
+| ----------- | --------- | --------------------------------------- | ---------- | --------------- | ------------------------------------- |
+| Shopify     | SaaS 建站 | `/products/<handle>.json`               | 否         | 已设计 / 待实现 | 结构最规整，优先实现                  |
+| NewShop     | SaaS 建站 | URL 改写 `/api/store/products/<handle>` | 否         | 已设计 / 待实现 | PHP 另有服务端 fast path，扩展不实现  |
+| ShopBase    | SaaS 建站 | `window.__INITIAL_STATE__`              | 是         | 已设计 / 待实现 | 需 MAIN world 桥                      |
+| ShopLine    | SaaS 建站 | `window.__PRELOAD_STATE__.product`      | 是         | 已设计 / 待实现 | 详情优先 DOM `.mce-content-body`      |
+| XShopPy     | SaaS 建站 | POST `/buyer/product/pop-detail`        | 否         | 已设计 / 待实现 | 需先读 `input.product-id`             |
+| ShopLazza   | SaaS 建站 | `/api/products/{id}` + DOM 详情         | 否         | 已设计 / 待实现 | API 图片补 `https:`，HTML 清洗懒加载  |
+| TikTok Shop | 社交电商  | `<script id="__MODERN_ROUTER_DATA__">`  | 否         | 已设计 / 待实现 | 区域限制 / captcha 需给出明确失败原因 |
 
 ## 平台代码对照
 
 提交给后端时使用的平台代码：
 
-| 平台 | 扩展内部 key | 后端代码（参考 PHP） |
-| --- | --- | --- |
-| Shopify | `shopify` | `shopify` |
-| NewShop | `newshop` | `wshop` |
-| ShopBase | `shopbase` | `shopbase` |
-| ShopLine | `shopline` | `shopline` |
-| XShopPy | `xshoppy` | `xshoppy` |
-| ShopLazza | `shoplazza` | `shoplazza` |
-| TikTok Shop | `tiktok` | `tiktok` |
+| 平台        | 扩展内部 key | 后端代码（参考 PHP） |
+| ----------- | ------------ | -------------------- |
+| Shopify     | `shopify`    | `shopify`            |
+| NewShop     | `newshop`    | `wshop`              |
+| ShopBase    | `shopbase`   | `shopbase`           |
+| ShopLine    | `shopline`   | `shopline`           |
+| XShopPy     | `xshoppy`    | `xshoppy`            |
+| ShopLazza   | `shoplazza`  | `shoplazza`          |
+| TikTok Shop | `tiktok`     | `tiktok`             |
 
 > 发送层如需兼容旧 PHP，可将 `newshop` 转为 `wshop`。
 
@@ -50,8 +51,8 @@
 - **返回**：NewShop 私有 JSON。
 - **注意**：
   - `handle = slug`
-  - `body_html = post_content ?? content ?? ""`
-  - 图片 `categories` 由 `media_content_type` 判断
+  - `description_html = post_content ?? content ?? ""`
+  - 图片 `type` 由 `media_content_type` 判断，非 video 为 `"image"`，video 为 `"video"`
 
 ### ShopBase
 

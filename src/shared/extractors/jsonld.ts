@@ -5,7 +5,13 @@
  * 从页面的 `<script type="application/ld+json">` 中读取 Product 结构化数据。
  */
 
-import type { CreateProductPayload, PlatformCode, Product, ProductImage, ProductVariant } from '../schema';
+import type {
+  CreateProductPayload,
+  PlatformCode,
+  Product,
+  ProductImage,
+  ProductVariant,
+} from '../schema';
 import { extractHandle } from '../platform';
 
 type RawObject = Record<string, unknown>;
@@ -48,12 +54,6 @@ function normalizeSrc(src: string): string {
   return src;
 }
 
-function computeMainSku(sku?: string | null): string {
-  if (!sku) return '';
-  const idx = sku.indexOf('-');
-  return idx >= 0 ? sku.slice(0, idx) : sku;
-}
-
 function toStringOrUndefined(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined;
   return String(value);
@@ -71,18 +71,25 @@ function extractImages(product: RawObject): ProductImage[] {
         images.push(String((item as RawObject).url));
       }
     });
-  } else if (rawImage && typeof rawImage === 'object' && typeof (rawImage as RawObject).url === 'string') {
+  } else if (
+    rawImage &&
+    typeof rawImage === 'object' &&
+    typeof (rawImage as RawObject).url === 'string'
+  ) {
     images.push(String((rawImage as RawObject).url));
   }
 
   return images.map((src, idx) => ({
     position: idx + 1,
     src: normalizeSrc(src),
-    categories: 1,
+    type: 'image' as const,
   }));
 }
 
-function extractVariants(product: RawObject): { variants: ProductVariant[]; options: { name: string; values: string[] } | null } {
+function extractVariants(product: RawObject): {
+  variants: ProductVariant[];
+  options: { name: string; values: string[] } | null;
+} {
   const offersRaw = product.offers;
   const offers: RawObject[] = [];
   if (Array.isArray(offersRaw)) {
@@ -98,11 +105,9 @@ function extractVariants(product: RawObject): { variants: ProductVariant[]; opti
         {
           position: 1,
           title: 'Default Title',
-          main_sku: '',
-          option1: 'Default Title',
+          options: [{ name: 'Title', value: 'Default Title' }],
           price: '0',
           grams: 0,
-          taxable: 1 as const,
         },
       ],
       options: { name: 'Title', values: ['Default Title'] },
@@ -111,17 +116,16 @@ function extractVariants(product: RawObject): { variants: ProductVariant[]; opti
 
   const variants = offers.map((offer, idx) => {
     const sku = toStringOrUndefined(offer.sku);
-    const price = typeof offer.price === 'number' ? offer.price.toFixed(2) : String(offer.price ?? '0');
+    const price =
+      typeof offer.price === 'number' ? offer.price.toFixed(2) : String(offer.price ?? '0');
     return {
       source_variant_id: toStringOrUndefined(offer.sku) ?? String(idx + 1),
       position: idx + 1,
       title: toStringOrUndefined(offer.name) ?? 'Default Title',
-      main_sku: computeMainSku(sku),
-      option1: 'Default Title',
+      options: [{ name: 'Title', value: 'Default Title' }],
       price,
       sku,
       grams: 0,
-      taxable: 1 as const,
     };
   });
 
@@ -135,7 +139,7 @@ function buildProduct(product: RawObject, url: string): Product {
   return {
     title: String(product.name ?? ''),
     handle: extractHandle(url).handle ?? undefined,
-    body_html: toStringOrUndefined(product.description),
+    description_html: toStringOrUndefined(product.description),
     vendor: toStringOrUndefined((product.brand as RawObject)?.name),
     product_type: undefined,
     tags: undefined,
@@ -168,7 +172,8 @@ export async function extractJsonLdProduct(
   return {
     platform,
     source_url: url,
-    source_product_id: toStringOrUndefined(productNode.sku) ?? toStringOrUndefined(productNode.productID),
+    source_product_id:
+      toStringOrUndefined(productNode.sku) ?? toStringOrUndefined(productNode.productID),
     product: buildProduct(productNode, url),
   };
 }

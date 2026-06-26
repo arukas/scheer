@@ -1,6 +1,35 @@
 import { describe, it, expect, vi, type Mock, beforeEach } from 'vitest';
 import { extractShoplineProduct } from '@/shared/extractors/shopline';
 
+vi.mock('@/shared/storage', () => ({
+  getDebugLogs: () =>
+    Promise.resolve({
+      enabled: false,
+      persist: false,
+      maxEntries: 500,
+      level: 'info',
+      entries: [],
+    }),
+  appendDebugLog: () => Promise.resolve(),
+}));
+
+function createFetchResponse(overrides: {
+  ok: boolean;
+  status?: number;
+  text: string;
+  contentType?: string | null;
+}) {
+  return {
+    ok: overrides.ok,
+    status: overrides.status ?? (overrides.ok ? 200 : 500),
+    statusText: overrides.ok ? 'OK' : 'Internal Server Error',
+    text: async () => overrides.text,
+    headers: {
+      get: () => overrides.contentType ?? null,
+    },
+  };
+}
+
 const sampleResponse = {
   products: [
     {
@@ -10,9 +39,7 @@ const sampleResponse = {
       description: 'product description',
       brand: 'Test Brand',
       tags: ['pants', 'sequin'],
-      images: [
-        'https://img.myshopline.com/image/official/e46e6189dd5641a3b179444cacdcdd2a.png',
-      ],
+      images: ['https://img.myshopline.com/image/official/e46e6189dd5641a3b179444cacdcdd2a.png'],
       options: [
         { name: 'Color', values: ['Silver', 'White'] },
         { name: 'Size', values: ['S', 'M', 'L'] },
@@ -44,10 +71,13 @@ describe('extractShoplineProduct', () => {
   });
 
   it('converts storefront API response to CreateProductPayload', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      text: async () => JSON.stringify(sampleResponse),
-    });
+    fetchMock.mockResolvedValueOnce(
+      createFetchResponse({
+        ok: true,
+        text: JSON.stringify(sampleResponse),
+        contentType: 'application/json',
+      })
+    );
 
     const payload = await extractShoplineProduct(
       'https://shoplinedemo.myshopline.com/products/loose-high-waist-sequined-wide-leg-pants-2'
@@ -60,15 +90,22 @@ describe('extractShoplineProduct', () => {
     expect(payload.product.variants[0].price).toBe('13794.00');
     expect(payload.product.variants[0].compare_at_price).toBe('32.98');
     expect(payload.product.variants[0].grams).toBe(200);
+    expect(payload.product.variants[0].options).toEqual([
+      { name: 'Color', value: 'Silver' },
+      { name: 'Size', value: 'S' },
+    ]);
     expect(payload.product.images).toHaveLength(1);
     expect(payload.product.options).toHaveLength(2);
   });
 
   it('throws when API returns message without products', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      text: async () => JSON.stringify({ message: 'Not found' }),
-    });
+    fetchMock.mockResolvedValueOnce(
+      createFetchResponse({
+        ok: true,
+        text: JSON.stringify({ message: 'Not found' }),
+        contentType: 'application/json',
+      })
+    );
 
     await expect(
       extractShoplineProduct('https://shoplinedemo.myshopline.com/products/missing')
@@ -76,7 +113,7 @@ describe('extractShoplineProduct', () => {
   });
 
   it('throws when fetch fails', async () => {
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 500, text: async () => '' });
+    fetchMock.mockResolvedValueOnce(createFetchResponse({ ok: false, status: 500, text: '' }));
 
     await expect(
       extractShoplineProduct('https://shoplinedemo.myshopline.com/products/test')

@@ -10,7 +10,7 @@ import type { DebugLogs } from '@/shared/schema';
 
 import type { DebugLogEntry } from '@/shared/schema';
 
-const mockAppendDebugLog = vi.fn((_entry: DebugLogEntry) => Promise.resolve());
+const mockAppendDebugLog = vi.fn((entry: DebugLogEntry) => Promise.resolve(entry));
 const mockGetDebugLogs = vi.fn(() => Promise.resolve({} as import('@/shared/schema').DebugLogs));
 
 vi.mock('@/shared/storage', () => ({
@@ -96,6 +96,7 @@ describe('createLogger', () => {
       enabled: true,
       persist: true,
       maxEntries: 500,
+      level: 'debug',
       entries: [],
     } as DebugLogs);
 
@@ -113,6 +114,7 @@ describe('createLogger', () => {
       enabled: true,
       persist: false,
       maxEntries: 500,
+      level: 'debug',
       entries: [],
     } as DebugLogs);
 
@@ -128,6 +130,7 @@ describe('createLogger', () => {
       enabled: false,
       persist: true,
       maxEntries: 500,
+      level: 'debug',
       entries: [],
     } as DebugLogs);
 
@@ -143,6 +146,7 @@ describe('createLogger', () => {
       enabled: true,
       persist: true,
       maxEntries: 500,
+      level: 'info',
       entries: [],
     } as DebugLogs);
 

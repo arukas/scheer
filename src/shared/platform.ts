@@ -10,6 +10,7 @@
  */
 
 import type { PlatformKey } from './schema';
+import { createLogger } from './logger';
 
 export interface PageStatus {
   url: string;
@@ -17,6 +18,8 @@ export interface PageStatus {
   canExtract: boolean;
   reason: string;
 }
+
+const log = createLogger('shared/platform');
 
 const API_TIMEOUT_MS = 5000;
 
@@ -26,7 +29,7 @@ export function extractHandle(url: string): { host: string; handle: string | nul
     const host = u.hostname.toLowerCase();
     const paths = u.pathname.split('/').filter(Boolean);
     const idx = paths.indexOf('products');
-    const handle = idx >= 0 ? paths[idx + 1] ?? null : null;
+    const handle = idx >= 0 ? (paths[idx + 1] ?? null) : null;
     return { host, handle };
   } catch {
     return { host: '', handle: null };
@@ -62,14 +65,18 @@ async function fetchJson(url: string, options?: RequestInit): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
+    log.debug('平台 API 探测请求', { url });
     const res = await fetch(url, {
       ...options,
       signal: controller.signal,
       credentials: 'same-origin',
     });
+    log.debug('平台 API 探测响应', { url, status: res.status, ok: res.ok });
     if (!res.ok) return null;
     return await res.json();
-  } catch {
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    log.debug('平台 API 探测异常', { url, error });
     return null;
   } finally {
     clearTimeout(timer);
@@ -78,11 +85,16 @@ async function fetchJson(url: string, options?: RequestInit): Promise<unknown> {
 
 export async function detectPlatformByApi(url: string): Promise<PlatformKey | null> {
   const { host, handle } = extractHandle(url);
-  if (!host || !handle) return null;
+  if (!host || !handle) {
+    log.debug('无法从 URL 提取 host/handle，跳过 API 探测', { url });
+    return null;
+  }
 
   const base = `https://${host}`;
   const shopifyUrl = `${base}/products/${handle}.json`;
   const newShopUrl = `${base}/api/store/products/${handle}`;
+
+  log.debug('开始平台 API 探测', { url, shopifyUrl, newShopUrl });
 
   const [shopifyData, newShopData] = await Promise.all([
     fetchJson(shopifyUrl),
@@ -90,15 +102,26 @@ export async function detectPlatformByApi(url: string): Promise<PlatformKey | nu
   ]);
 
   // Shopify 返回 { product: ... }
-  if (shopifyData && typeof shopifyData === 'object' && (shopifyData as Record<string, unknown>).product) {
+  if (
+    shopifyData &&
+    typeof shopifyData === 'object' &&
+    (shopifyData as Record<string, unknown>).product
+  ) {
+    log.info('API 探测命中 Shopify', { url, shopifyUrl });
     return 'shopify';
   }
 
   // NewShop / wshop 返回包含 ID 的对象
-  if (newShopData && typeof newShopData === 'object' && (newShopData as Record<string, unknown>).ID) {
+  if (
+    newShopData &&
+    typeof newShopData === 'object' &&
+    (newShopData as Record<string, unknown>).ID
+  ) {
+    log.info('API 探测命中 NewShop', { url, newShopUrl });
     return 'newshop';
   }
 
+  log.debug('API 探测未命中', { url, shopifyUrl, newShopUrl });
   return null;
 }
 
@@ -155,8 +178,7 @@ export async function detectPlatform(url: string, html?: string): Promise<Platfo
 }
 
 export async function checkCanExtract(
-  platform: PlatformKey | null,
-  _url: string
+  platform: PlatformKey | null
 ): Promise<{ canExtract: boolean; reason: string }> {
   if (!platform) {
     return { canExtract: false, reason: '未识别到受支持的平台' };
@@ -167,6 +189,6 @@ export async function checkCanExtract(
 
 export async function getPageStatus(url: string, html?: string): Promise<PageStatus> {
   const platform = await detectPlatform(url, html);
-  const { canExtract, reason } = await checkCanExtract(platform, url);
+  const { canExtract, reason } = await checkCanExtract(platform);
   return { url, platform, canExtract, reason };
 }

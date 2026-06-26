@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { isAbsoluteUrl, resolveEndpoint } from '@/shared/api';
+import { describe, it, expect, vi } from 'vitest';
+import { isAbsoluteUrl, resolveEndpoint, buildCurl } from '@/shared/api';
+
+vi.mock('@/shared/storage', () => ({
+  getDebugLogs: () =>
+    Promise.resolve({ enabled: false, persist: false, maxEntries: 500, entries: [] }),
+  appendDebugLog: () => Promise.resolve(),
+}));
 
 describe('isAbsoluteUrl', () => {
   it('returns true for full http/https URLs', () => {
@@ -52,5 +58,55 @@ describe('resolveEndpoint', () => {
 
   it('returns endpoint as-is when base is empty and endpoint is relative', () => {
     expect(resolveEndpoint('', '/scheer/products')).toBe('/scheer/products');
+  });
+});
+
+describe('buildCurl', () => {
+  it('builds a POST curl with headers and body', () => {
+    const curl = buildCurl('https://api.example.com/scheer/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Test' }),
+    });
+    expect(curl).toContain('curl -X POST');
+    expect(curl).toContain("-H 'Content-Type: application/json'");
+    expect(curl).toContain('--data-raw \'{"title":"Test"}\'');
+    expect(curl).toContain("'https://api.example.com/scheer/products'");
+  });
+
+  it('omits -X for GET requests', () => {
+    const curl = buildCurl('https://api.example.com/scheer/me', {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    expect(curl).not.toContain('-X');
+    expect(curl).toContain("-H 'Accept: application/json'");
+  });
+
+  it('redacts Authorization header value', () => {
+    const curl = buildCurl('https://api.example.com/scheer/me', {
+      headers: { Authorization: 'Bearer sk-1234567890' },
+    });
+    expect(curl).toContain("-H 'Authorization: <redacted>'");
+    expect(curl).not.toContain('sk-1234567890');
+  });
+
+  it('truncates long body in curl', () => {
+    const longBody = JSON.stringify({ title: 'a'.repeat(3000) });
+    const curl = buildCurl('https://api.example.com/scheer/products', {
+      method: 'POST',
+      body: longBody,
+    });
+    expect(curl).toContain(' ... [truncated]');
+    expect(curl.length).toBeLessThan(longBody.length + 200);
+  });
+
+  it('escapes single quotes in body and url', () => {
+    const curl = buildCurl("https://api.example.com/o'clock", {
+      method: 'POST',
+      body: "it's a test",
+    });
+    expect(curl).toContain("o'\\''clock");
+    expect(curl).toContain("it'\\''s a test");
   });
 });

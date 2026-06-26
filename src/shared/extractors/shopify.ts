@@ -4,7 +4,15 @@
  * 通过 `/products/<handle>.json` 取结构化数据，转换为通用 Product。
  */
 
-import type { CreateProductPayload, PlatformCode, Product, ProductImage, ProductOption, ProductVariant } from '../schema';
+import type {
+  CreateProductPayload,
+  PlatformCode,
+  Product,
+  ProductImage,
+  ProductOption,
+  ProductVariant,
+  VariantOption,
+} from '../schema';
 import { extractHandle } from '../platform';
 import { fetchJson } from '../fetch';
 
@@ -36,20 +44,17 @@ function normalizeSrc(src: string): string {
   return src;
 }
 
-function computeMainSku(sku?: string | null): string {
-  if (!sku) return '';
-  const idx = sku.indexOf('-');
-  return idx >= 0 ? sku.slice(0, idx) : sku;
-}
-
 function toStringOrUndefined(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined;
   return String(value);
 }
 
-function convertTags(tags: unknown): string | undefined {
-  if (Array.isArray(tags)) return tags.join(', ');
-  if (typeof tags === 'string') return tags;
+function convertTags(tags: unknown): string[] | undefined {
+  if (Array.isArray(tags)) return tags.map(String);
+  if (typeof tags === 'string') {
+    const trimmed = tags.trim();
+    return trimmed ? trimmed.split(',').map((t) => t.trim()) : [];
+  }
   return undefined;
 }
 
@@ -69,52 +74,76 @@ function convertImages(images: RawObject[]): ProductImage[] {
     position: Number(img.position ?? idx + 1),
     src: normalizeSrc(String(img.src ?? '')),
     alt: toStringOrUndefined(img.alt),
-    categories: 1,
+    type: 'image' as const,
   }));
 }
 
-function convertVariants(variants: RawObject[], images: ProductImage[]): ProductVariant[] {
+function buildVariantOptions(v: RawObject, productOptions: ProductOption[]): VariantOption[] {
+  const rawKeys = ['option1', 'option2', 'option3'] as const;
+
+  // 优先用 product.options 的 name 作为维度名
+  if (productOptions.length > 0) {
+    return productOptions.map((opt, idx) => {
+      const rawValue = v[rawKeys[idx]] as unknown;
+      return {
+        name: opt.name,
+        value: toStringOrUndefined(rawValue) ?? '',
+      };
+    });
+  }
+
+  // 退化：没有 product.options 时，用 option1/2/3 自身生成 name
+  return rawKeys
+    .map((key, idx) => {
+      const value = toStringOrUndefined(v[key]);
+      if (value == null) return null;
+      return { name: `Option ${idx + 1}`, value };
+    })
+    .filter((item): item is VariantOption => item !== null);
+}
+
+function convertVariants(
+  variants: RawObject[],
+  images: ProductImage[],
+  productOptions: ProductOption[]
+): ProductVariant[] {
   if (!Array.isArray(variants)) return [];
   return variants.map((v, idx) => {
     const sku = toStringOrUndefined(v.sku);
     const imageId = v.image_id != null ? String(v.image_id) : undefined;
-    const sourceImageId = imageId && images.some((img) => img.source_image_id === imageId) ? imageId : undefined;
+    const sourceImageId =
+      imageId && images.some((img) => img.source_image_id === imageId) ? imageId : undefined;
 
     return {
       source_variant_id: v.id != null ? String(v.id) : undefined,
       position: Number(v.position ?? idx + 1),
       title: String(v.title ?? ''),
-      main_sku: computeMainSku(sku),
-      option1: toStringOrUndefined(v.option1) ?? '',
-      option2: toStringOrUndefined(v.option2),
-      option3: toStringOrUndefined(v.option3),
       price: String(v.price ?? '0'),
       compare_at_price: toStringOrUndefined(v.compare_at_price),
       sku,
       barcode: toStringOrUndefined(v.barcode),
+      options: buildVariantOptions(v, productOptions),
       source_image_id: sourceImageId,
       grams: Number(v.grams ?? 0),
       weight: v.weight != null ? Number(v.weight) : null,
       weight_unit: toStringOrUndefined(v.weight_unit),
-      taxable: v.taxable ? 1 : 0,
-      tax_code: toStringOrUndefined(v.tax_code),
-      presentment_prices: Array.isArray(v.presentment_prices) ? v.presentment_prices : undefined,
     };
   });
 }
 
 function convertProduct(raw: RawObject): Product {
   const images = convertImages((raw.images ?? []) as RawObject[]);
+  const productOptions = convertOptions((raw.options ?? []) as RawObject[]);
   return {
     title: String(raw.title ?? ''),
     handle: toStringOrUndefined(raw.handle),
-    body_html: toStringOrUndefined(raw.body_html),
+    description_html: toStringOrUndefined(raw.body_html),
     vendor: toStringOrUndefined(raw.vendor),
     product_type: toStringOrUndefined(raw.product_type),
     tags: convertTags(raw.tags),
-    options: convertOptions((raw.options ?? []) as RawObject[]),
+    options: productOptions,
     published_scope: toStringOrUndefined(raw.published_scope),
-    variants: convertVariants((raw.variants ?? []) as RawObject[], images),
+    variants: convertVariants((raw.variants ?? []) as RawObject[], images, productOptions),
     images,
   };
 }

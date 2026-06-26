@@ -91,9 +91,20 @@ describe('storage', () => {
     expect(logs.enabled).toBe(DEFAULT_DEBUG_LOGS.enabled);
   });
 
-  it('exports debug logs as formatted JSON', async () => {
-    await setDebugLogs(DEFAULT_DEBUG_LOGS);
+  it('exports debug logs as NDJSON with metadata header and one entry per line', async () => {
+    const entry = {
+      timestamp: '2026-06-24T05:01:03.744Z',
+      level: 'info' as const,
+      context: 'test',
+      message: 'hello',
+    };
+    await setDebugLogs({ ...DEFAULT_DEBUG_LOGS, entries: [entry] });
     const text = exportDebugLogs(await getDebugLogs());
-    expect(JSON.parse(text)).toEqual(DEFAULT_DEBUG_LOGS);
+    const lines = text.split('\n');
+    expect(lines.length).toBe(2);
+    const meta = JSON.parse(lines[0]);
+    expect(meta.type).toBe('scheer-debug-logs');
+    expect(meta.count).toBe(1);
+    expect(JSON.parse(lines[1])).toEqual(entry);
   });
 });

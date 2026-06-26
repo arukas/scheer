@@ -13,6 +13,19 @@ const SENSITIVE_KEY_RE = /secret|authorization|token|password|cookie|api[-_]?key
 const BEARER_RE = /^Bearer\s+/i;
 const MAX_BODY_LENGTH = 2048;
 
+const LEVEL_PRIORITY: Record<DebugLogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
+
+function shouldLog(level: DebugLogLevel, configLevel: DebugLogLevel, enabled: boolean): boolean {
+  // 生产环境（enabled=false）默认只保留 info 及以上，且屏蔽 debug
+  if (level === 'debug' && !enabled) return false;
+  return LEVEL_PRIORITY[level] >= LEVEL_PRIORITY[configLevel];
+}
+
 export function redactSensitive(payload: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(payload)) {
@@ -54,9 +67,7 @@ function normalizePayload(payload: unknown): Record<string, unknown> | undefined
   return { value: payload };
 }
 
-export function sanitizePayload(
-  payload?: unknown
-): Record<string, unknown> | undefined {
+export function sanitizePayload(payload?: unknown): Record<string, unknown> | undefined {
   return truncateBody(redactSensitive(normalizePayload(payload) ?? {}));
 }
 
@@ -78,16 +89,16 @@ export function buildLogEntry(
 export function createLogger(context: string): Logger {
   return {
     debug(message: string, payload?: unknown) {
-      log(context, 'debug', message, payload);
+      return log(context, 'debug', message, payload);
     },
     info(message: string, payload?: unknown) {
-      log(context, 'info', message, payload);
+      return log(context, 'info', message, payload);
     },
     warn(message: string, payload?: unknown) {
-      log(context, 'warn', message, payload);
+      return log(context, 'warn', message, payload);
     },
     error(message: string, payload?: unknown) {
-      log(context, 'error', message, payload);
+      return log(context, 'error', message, payload);
     },
   };
 }
@@ -97,21 +108,23 @@ function log(
   level: DebugLogLevel,
   message: string,
   payload?: unknown
-): void {
+): Promise<void> {
   // 异步读取配置，不阻塞业务
-  getDebugLogs()
+  return getDebugLogs()
     .then((logs) => {
       const entry = buildLogEntry(context, level, message, payload);
+      const configLevel = logs.level ?? 'info';
 
-      // console 输出规则：debug 仅在 enabled 时输出
-      if (level !== 'debug' || logs.enabled) {
-        const consoleMethod = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
+      // console 输出规则：按配置的 level 过滤
+      if (shouldLog(level, configLevel, logs.enabled)) {
+        const consoleMethod =
+          level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
         consoleMethod(`[${context}] ${message}`, entry.payload ?? '');
       }
 
-      // storage 写入规则：enabled && persist
-      if (logs.enabled && logs.persist) {
-        appendDebugLog(entry).catch((err) => {
+      // storage 写入规则：enabled && persist && 满足 level 过滤
+      if (logs.enabled && logs.persist && shouldLog(level, configLevel, logs.enabled)) {
+        return appendDebugLog(entry).catch((err) => {
           console.error('[logger] failed to persist debug log', err);
         });
       }

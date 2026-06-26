@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { sendMessage } from '../../src/shared/messaging';
 import type { Config, DebugLogs } from '../../src/shared/schema';
+import { DEBUG_LOG_LEVELS } from '../../src/shared/schema';
 import './style.css';
 
 function Options() {
@@ -32,15 +33,11 @@ function Options() {
   }
 
   function updateServer(partial: Partial<Config['server']>) {
-    setConfig((prev) =>
-      prev ? { ...prev, server: { ...prev.server, ...partial } } : prev
-    );
+    setConfig((prev) => (prev ? { ...prev, server: { ...prev.server, ...partial } } : prev));
   }
 
   function updateDebug(partial: Partial<Config['debug']>) {
-    setConfig((prev) =>
-      prev ? { ...prev, debug: { ...prev.debug, ...partial } } : prev
-    );
+    setConfig((prev) => (prev ? { ...prev, debug: { ...prev.debug, ...partial } } : prev));
   }
 
   async function testConfig() {
@@ -70,11 +67,11 @@ function Options() {
   async function exportLogs() {
     if (!logs) return;
     const text = await sendMessage<string>({ type: 'EXPORT_DEBUG_LOGS' });
-    const blob = new Blob([text], { type: 'application/json' });
+    const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `scheer-debug-logs-${new Date().toISOString()}.json`;
+    a.download = `scheer-debug-logs-${new Date().toISOString()}.log`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -187,6 +184,26 @@ function Options() {
             onChange={(e) => updateDebug({ maxEntries: Number(e.target.value) })}
           />
         </div>
+        <div className="options-field">
+          <label className="options-label" htmlFor="debugLevel">
+            日志留存等级
+          </label>
+          <select
+            id="debugLevel"
+            className="options-input"
+            value={config.debug.level}
+            onChange={(e) => updateDebug({ level: e.target.value as Config['debug']['level'] })}
+          >
+            {DEBUG_LOG_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {level.toUpperCase()}
+              </option>
+            ))}
+          </select>
+          <p className="options-hint">
+            只保留所选等级及以上的日志。例如选 WARN 时只保留 warn/error。
+          </p>
+        </div>
         <div className="options-actions">
           <button className="options-btn secondary" onClick={clearLogs}>
             清除日志
@@ -200,9 +217,7 @@ function Options() {
           </button>
         </div>
         {logs && logs.persist && (
-          <p className="options-hint">
-            当前本地日志：{logs.entries.length} 条
-          </p>
+          <p className="options-hint">当前本地日志：{logs.entries.length} 条</p>
         )}
       </section>
 

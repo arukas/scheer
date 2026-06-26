@@ -4,7 +4,15 @@
  * 请求 `/api/product/products.json?handle=<handle>`，失败时由调用方回退到 JSON-LD。
  */
 
-import type { CreateProductPayload, PlatformCode, Product, ProductImage, ProductOption, ProductVariant } from '../schema';
+import type {
+  CreateProductPayload,
+  PlatformCode,
+  Product,
+  ProductImage,
+  ProductOption,
+  ProductVariant,
+  VariantOption,
+} from '../schema';
 import { extractHandle } from '../platform';
 import { fetchJson } from '../fetch';
 
@@ -39,20 +47,17 @@ function normalizeSrc(src: string): string {
   return src;
 }
 
-function computeMainSku(sku?: string | null): string {
-  if (!sku) return '';
-  const idx = sku.indexOf('-');
-  return idx >= 0 ? sku.slice(0, idx) : sku;
-}
-
 function toStringOrUndefined(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined;
   return String(value);
 }
 
-function convertTags(tags: unknown): string | undefined {
-  if (Array.isArray(tags)) return tags.map(String).join(', ');
-  if (typeof tags === 'string') return tags;
+function convertTags(tags: unknown): string[] | undefined {
+  if (Array.isArray(tags)) return tags.map(String);
+  if (typeof tags === 'string') {
+    const trimmed = tags.trim();
+    return trimmed ? trimmed.split(',').map((t) => t.trim()) : [];
+  }
   return undefined;
 }
 
@@ -68,7 +73,7 @@ function convertImages(rawImages: unknown[], medias: RawObject[]): ProductImage[
   for (let idx = 0; idx < rawImages.length; idx++) {
     const item = rawImages[idx];
     if (typeof item === 'string') {
-      result.push({ position: idx + 1, src: normalizeSrc(item), categories: 1 });
+      result.push({ position: idx + 1, src: normalizeSrc(item), type: 'image' as const });
     } else if (item && typeof item === 'object') {
       const obj = item as RawObject;
       const src = toStringOrUndefined(obj.src ?? obj.resource ?? obj.cover);
@@ -78,7 +83,7 @@ function convertImages(rawImages: unknown[], medias: RawObject[]): ProductImage[
           position: idx + 1,
           src: normalizeSrc(src),
           alt: toStringOrUndefined(obj.alt),
-          categories: 1,
+          type: 'image' as const,
         });
       }
     }
@@ -95,7 +100,7 @@ function convertImages(rawImages: unknown[], medias: RawObject[]): ProductImage[
           position: idx + 1,
           src: normalizeSrc(src),
           alt: toStringOrUndefined(media.alt),
-          categories: media.type === 'video' ? 2 : 1,
+          type: media.type === 'video' ? ('video' as const) : ('image' as const),
         });
       }
     }
@@ -123,44 +128,63 @@ function gramsFromWeight(weight: unknown, unit: unknown): number {
   return 0;
 }
 
-function convertVariants(variants: RawObject[]): ProductVariant[] {
+function buildVariantOptions(v: RawObject, productOptions: ProductOption[]): VariantOption[] {
+  const rawKeys = ['option1', 'option2', 'option3'] as const;
+
+  if (productOptions.length > 0) {
+    return productOptions.map((opt, idx) => {
+      const rawValue = v[rawKeys[idx]] as unknown;
+      return {
+        name: opt.name,
+        value: toStringOrUndefined(rawValue) ?? '',
+      };
+    });
+  }
+
+  return rawKeys
+    .map((key, idx) => {
+      const value = toStringOrUndefined(v[key]);
+      if (value == null) return null;
+      return { name: `Option ${idx + 1}`, value };
+    })
+    .filter((item): item is VariantOption => item !== null);
+}
+
+function convertVariants(variants: RawObject[], productOptions: ProductOption[]): ProductVariant[] {
   if (!Array.isArray(variants)) return [];
   return variants.map((v, idx) => ({
     source_variant_id: v.id != null ? String(v.id) : undefined,
     position: idx + 1,
     title: String(v.title ?? ''),
-    main_sku: computeMainSku(toStringOrUndefined(v.sku)),
-    option1: toStringOrUndefined(v.option1) ?? '',
-    option2: toStringOrUndefined(v.option2),
-    option3: toStringOrUndefined(v.option3),
     price: convertPrice(v.price),
     compare_at_price: v.compare_at_price != null ? convertPrice(v.compare_at_price) : undefined,
     sku: toStringOrUndefined(v.sku),
     barcode: toStringOrUndefined(v.barcode),
+    options: buildVariantOptions(v, productOptions),
     grams: gramsFromWeight(v.weight, v.weight_unit),
     weight: typeof v.weight === 'number' ? v.weight : null,
     weight_unit: toStringOrUndefined(v.weight_unit),
-    taxable: 1 as const,
   }));
 }
 
 function convertProduct(raw: RawObject, url: string): Product {
   const images = convertImages((raw.images ?? []) as unknown[], (raw.medias ?? []) as RawObject[]);
-  const variants = convertVariants((raw.variants ?? []) as RawObject[]);
+  const productOptions = convertOptions((raw.options ?? []) as RawObject[]);
+  const variants = convertVariants((raw.variants ?? []) as RawObject[], productOptions);
 
-  // 单 variant 且没有有效 option1 时，强制使用 Shopify 风格的 Default Title
-  if (variants.length === 1 && !variants[0].option1) {
-    variants[0].option1 = 'Default Title';
+  // 单 variant 且没有任何 option 值时，强制使用 Shopify 风格的 Default Title
+  if (variants.length === 1 && variants[0].options.length === 0) {
+    variants[0].options = [{ name: 'Title', value: 'Default Title' }];
   }
 
   return {
     title: String(raw.title ?? ''),
     handle: toStringOrUndefined(raw.handle) ?? extractHandle(url).handle ?? undefined,
-    body_html: toStringOrUndefined(raw.description),
+    description_html: toStringOrUndefined(raw.description),
     vendor: toStringOrUndefined(raw.brand),
     product_type: undefined,
     tags: convertTags(raw.tags),
-    options: convertOptions((raw.options ?? []) as RawObject[]),
+    options: productOptions,
     published_scope: undefined,
     variants,
     images,

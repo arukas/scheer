@@ -1,6 +1,7 @@
 # Scheer Debug 日志子系统设计
 
 > 对应代码接口：
+>
 > - `src/shared/schema.ts`
 > - `src/shared/storage.ts`
 > - `src/shared/logger.ts`
@@ -24,23 +25,23 @@ Debug 日志子系统的设计目标是：
 
 ```ts
 interface DebugLogEntry {
-  timestamp: string;                 // ISO 8601，如 2026-06-24T05:01:03.744Z
+  timestamp: string; // ISO 8601，如 2026-06-24T05:01:03.744Z
   level: 'debug' | 'info' | 'warn' | 'error';
-  context: string;                   // 上下文标识
-  message: string;                   // 日志消息
+  context: string; // 上下文标识
+  message: string; // 日志消息
   payload?: Record<string, unknown>; // 结构化附加信息（已脱敏）
 }
 ```
 
 **context 命名约定**：
 
-| 场景 | 推荐 context |
-| --- | --- |
-| 平台抓取器 | `scraper/shopify`、`scraper/tiktok` 等 |
+| 场景                      | 推荐 context                                 |
+| ------------------------- | -------------------------------------------- |
+| 平台抓取器                | `scraper/shopify`、`scraper/tiktok` 等       |
 | Background Service Worker | `background/submit`、`background/history` 等 |
-| Popup UI | `popup/ui`、`popup/submit` 等 |
-| Options 配置页 | `options/config` 等 |
-| 共享工具 | `shared/storage`、`shared/main-world` 等 |
+| Popup UI                  | `popup/ui`、`popup/submit` 等                |
+| Options 配置页            | `options/config` 等                          |
+| 共享工具                  | `shared/storage`、`shared/main-world` 等     |
 
 ### 2.2 本地日志集合 `DebugLogs`
 
@@ -48,9 +49,10 @@ interface DebugLogEntry {
 
 ```ts
 interface DebugLogs {
-  enabled: boolean;      // Debug 模式总开关
-  persist: boolean;      // 是否写入 storage.local
-  maxEntries: number;    // 最大保留条数，默认 500
+  enabled: boolean; // Debug 模式总开关
+  persist: boolean; // 是否写入 storage.local
+  maxEntries: number; // 最大保留条数，默认 500
+  level: 'debug' | 'info' | 'warn' | 'error'; // 留存级别，默认 info
   entries: DebugLogEntry[];
 }
 ```
@@ -62,13 +64,14 @@ interface DebugLogs {
   enabled: false,
   persist: false,
   maxEntries: 500,
+  level: 'info',
   entries: []
 }
 ```
 
 ### 2.3 配置中的 Debug 字段
 
-`Config.debug` 与 `DebugLogs` 的 `enabled` / `persist` / `maxEntries` 字段必须保持语义一致。Options 页读取/写入的是 `Config.debug`，Logger 实际读取的是 `DebugLogs`。实现期保证两者同步。
+`Config.debug` 与 `DebugLogs` 的 `enabled` / `persist` / `maxEntries` / `level` 字段必须保持语义一致。Options 页读取/写入的是 `Config.debug`，Logger 实际读取的是 `DebugLogs`。实现期保证两者同步。
 
 ```ts
 interface Config {
@@ -78,6 +81,7 @@ interface Config {
     enabled: boolean;
     persist: boolean;
     maxEntries: number;
+    level: 'debug' | 'info' | 'warn' | 'error';
   };
 }
 ```
@@ -99,15 +103,22 @@ log.error('MAIN world 注入失败', { error: err.message });
 
 ### 3.2 级别过滤规则
 
-| `enabled` | `persist` | console 输出 | storage 写入 |
-| --- | --- | --- | --- |
-| false | false | 仅 `info/warn/error` | 不写入 |
-| false | true | 仅 `info/warn/error` | 不写入（enabled 关闭时 persist 无效） |
-| true | false | 全部级别 | 不写入 |
-| true | true | 全部级别 | 全部级别 |
+Logger 同时受 `enabled` 和 `level` 控制：
+
+| `enabled` | 配置 `level` | console 输出         | storage 写入（需 `persist=true`） |
+| --------- | ------------ | -------------------- | --------------------------------- |
+| false     | info（默认） | 仅 `info/warn/error` | 不写入                            |
+| false     | warn         | 仅 `warn/error`      | 不写入                            |
+| false     | error        | 仅 `error`           | 不写入                            |
+| true      | debug        | 全部级别             | 全部级别                          |
+| true      | info         | `info/warn/error`    | `info/warn/error`                 |
+| true      | warn         | `warn/error`         | `warn/error`                      |
+| true      | error        | 仅 `error`           | 仅 `error`                        |
 
 **说明**：
-- `enabled === false` 时，`debug` 级不输出到 console，避免生产环境刷屏。
+
+- `level` 默认 `info`，即保留 `info` 及以上级别。
+- `enabled === false` 时，`debug` 级始终不输出；其他级别按 `level` 过滤。
 - `persist` 仅在 `enabled === true` 时生效，避免用户误开 persist 但关闭 enabled 导致意外写入。
 
 ## 4. 脱敏与截断规则
@@ -171,14 +182,27 @@ log.error('MAIN world 注入失败', { error: err.message });
 - **Console**：
   ```js
   chrome.storage.local.set({
-    debug_logs: { enabled: true, persist: true, maxEntries: 500, entries: [] }
+    debug_logs: { enabled: true, persist: true, maxEntries: 500, entries: [] },
   });
   ```
 - **自动清理**：追加新日志时，若 `entries.length > maxEntries`，移除最旧的条目（`shift`）。
 
 ### 5.3 导出
 
-Options 页提供「导出调试日志」按钮，调用 `exportDebugLogs(logs)` 生成格式化 JSON 文件下载。
+Options / Popup 提供「导出调试日志」按钮，调用 `exportDebugLogs(logs)` 生成 `.log` 文件下载。导出格式为 **NDJSON（Newline Delimited JSON）**：
+
+- 第一行为元数据对象（`type`、`exported_at`、`enabled`、`persist`、`maxEntries`、`count`）。
+- 后续每一行为一条 `DebugLogEntry` JSON 对象。
+
+示例：
+
+```
+{"type":"scheer-debug-logs","exported_at":"2026-06-25T05:00:00.000Z","enabled":true,"persist":true,"maxEntries":500,"count":2}
+{"timestamp":"2026-06-25T04:59:58.000Z","level":"info","context":"shared/api","message":"发送创建商品请求","payload":{"url":"https://api.example.com/scheer/products","method":"POST","headers":{"Authorization":"<redacted>","Content-Type":"application/json"},"payloadSummary":{"platform":"shopify","source_url":"https://example.com/products/xxx"},"curl":"curl -X POST -H 'Authorization: <redacted>' -H 'Content-Type: application/json' --data-raw '{...}' 'https://api.example.com/scheer/products'"}}
+{"timestamp":"2026-06-25T04:59:59.000Z","level":"info","context":"shared/api","message":"创建商品请求成功","payload":{"status":200,"product_id":"123","log_id":"abc"}}
+```
+
+这种格式便于用 `jq -R '. | fromjson'` 或日志分析工具逐行解析。
 
 ## 6. 与 vibe/AI 协作的约定
 
@@ -198,25 +222,25 @@ Options 页提供「导出调试日志」按钮，调用 `exportDebugLogs(logs)`
 
 各模块应在关键节点记录日志，方便 AI 根据日志还原执行路径：
 
-| 模块 | 记录点 | 级别 | payload 建议 |
-| --- | --- | --- | --- |
-| 平台识别 | URL 初筛结果 | debug | `url`, `platform`, `matchedRule` |
-| 平台识别 | 平台识别失败 | warn | `url`, `reason` |
-| 可抓探测 | DOM/API/注水对象存在性 | debug | `selector`, `found`, `statusCode` |
-| 可抓探测 | 可抓状态为 false | warn | `platform`, `reason`, `domSnapshot` |
-| 抓取器 | 开始抓取 | info | `platform`, `sourceUrl` |
-| 抓取器 | 字段缺失/回退 | warn | `field`, `fallback`, `rawValue` |
-| 抓取器 | 抓取异常 | error | `error`, `step`, `context` |
-| MAIN world | 注入尝试 | debug | `targetObject`, `injectionTiming` |
-| MAIN world | 注入失败 | error | `error`, `csp`, `timing` |
-| XHR 拦截 | patch 成功 | debug | `patchedMethods` |
-| XHR 拦截 | 拦截到请求 | debug | `url`, `method` |
-| 后端提交 | 请求发送 | info | `endpoint`, `status`, `durationMs` |
-| 后端提交 | 失败 | error | `status`, `errorMessage` |
+| 模块       | 记录点                 | 级别  | payload 建议                        |
+| ---------- | ---------------------- | ----- | ----------------------------------- |
+| 平台识别   | URL 初筛结果           | debug | `url`, `platform`, `matchedRule`    |
+| 平台识别   | 平台识别失败           | warn  | `url`, `reason`                     |
+| 可抓探测   | DOM/API/注水对象存在性 | debug | `selector`, `found`, `statusCode`   |
+| 可抓探测   | 可抓状态为 false       | warn  | `platform`, `reason`, `domSnapshot` |
+| 抓取器     | 开始抓取               | info  | `platform`, `sourceUrl`             |
+| 抓取器     | 字段缺失/回退          | warn  | `field`, `fallback`, `rawValue`     |
+| 抓取器     | 抓取异常               | error | `error`, `step`, `context`          |
+| MAIN world | 注入尝试               | debug | `targetObject`, `injectionTiming`   |
+| MAIN world | 注入失败               | error | `error`, `csp`, `timing`            |
+| XHR 拦截   | patch 成功             | debug | `patchedMethods`                    |
+| XHR 拦截   | 拦截到请求             | debug | `url`, `method`                     |
+| 后端提交   | 请求发送               | info  | `endpoint`, `status`, `durationMs`  |
+| 后端提交   | 失败                   | error | `status`, `errorMessage`            |
 
 ### 6.3 给 AI 的 prompt 模板
 
-```
+````
 我在开发 Scheer Chrome 扩展时遇到一个问题：
 
 【复现步骤】
@@ -232,18 +256,19 @@ Options 页提供「导出调试日志」按钮，调用 `exportDebugLogs(logs)`
 【Debug 日志】
 ```json
 <粘贴 exportDebugLogs 输出>
-```
+````
 
 请根据日志定位问题代码路径，并给出修复或优化建议。
+
 ```
 
 ## 7. 实现 Checklist（编码阶段对照）
 
 - [ ] `src/shared/schema.ts` 中 `DebugLogEntry`、`DebugLogs`、`Logger`、`Config.debug` 类型稳定。
-- [x] `src/shared/storage.ts` 基于 WXT `wxt/storage` 实现 `getDebugLogs`、`setDebugLogs`、`appendDebugLog`、`clearDebugLogs`、`exportDebugLogs`。
+- [x] `src/shared/storage.ts` 基于 WXT `wxt/storage` 实现 `getDebugLogs`、`setDebugLogs`、`appendDebugLog`、`clearDebugLogs`、`exportDebugLogs`（NDJSON `.log` 格式）。
 - [ ] `src/shared/logger.ts` 实现 `createLogger`、`buildLogEntry`、`redactSensitive`、`truncateBody`、`sanitizePayload`。
-- [ ] Logger 初始化时读取 `DebugLogs`，`enabled` / `persist` 变更时动态生效。
-- [ ] Options 页提供 Debug 模式开关、持久化开关、最大条数输入、清除日志按钮、导出日志按钮。
+- [ ] Logger 初始化时读取 `DebugLogs`，`enabled` / `persist` / `level` 变更时动态生效。
+- [ ] Options 页提供 Debug 模式开关、持久化开关、最大条数输入、日志等级选择、清除日志按钮、导出日志按钮。
 - [ ] Background / Content Script / Popup 中使用 `createLogger` 替换裸 `console.log`。
 - [ ] 生产构建默认 `debug.enabled = false`、`debug.persist = false`。
 - [ ] 测试覆盖：级别过滤、脱敏、截断、存储上限。
@@ -253,3 +278,4 @@ Options 页提供「导出调试日志」按钮，调用 `exportDebugLogs(logs)`
 - [`docs/debugging.md`](debugging.md)：面向开发者的 Debug 模式使用指南。
 - [`docs/design.md`](design.md)：扩展整体架构与数据模型。
 - [`docs/development.md`](development.md)：本地开发与日志查看方式。
+```

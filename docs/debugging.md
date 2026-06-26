@@ -71,15 +71,15 @@ ShopLine、ShopBase 等平台需要读取 `window.__PRELOAD_STATE__` 或 `window
 
 ## 快速诊断清单
 
-| 现象 | 检查点 |
-| --- | --- |
-| 扩展图标不显示 | 是否已加载 `dist/`；manifest 是否有效；是否有报错。 |
-| Popup 白屏 | React 渲染异常；查看 Console 错误。 |
-| 平台识别为"未知" | URL 是否命中规则；Content Script 是否注入。 |
-| 可抓状态为 false | 页面结构是否变化；选择器是否失效；API 是否 404。 |
-| 提交后 401/403 | secret 是否正确；后端鉴权逻辑是否正常。 |
-| MAIN world 数据为空 | 注入时机；CSP；回传事件名。 |
-| 拦截不到 XHR | `run_at` 是否为 `document_start`；patch 是否生效。 |
+| 现象                | 检查点                                              |
+| ------------------- | --------------------------------------------------- |
+| 扩展图标不显示      | 是否已加载 `dist/`；manifest 是否有效；是否有报错。 |
+| Popup 白屏          | React 渲染异常；查看 Console 错误。                 |
+| 平台识别为"未知"    | URL 是否命中规则；Content Script 是否注入。         |
+| 可抓状态为 false    | 页面结构是否变化；选择器是否失效；API 是否 404。    |
+| 提交后 401/403      | secret 是否正确；后端鉴权逻辑是否正常。             |
+| MAIN world 数据为空 | 注入时机；CSP；回传事件名。                         |
+| 拦截不到 XHR        | `run_at` 是否为 `document_start`；patch 是否生效。  |
 
 ## Debug 模式与详细日志
 
@@ -92,7 +92,12 @@ ShopLine、ShopBase 等平台需要读取 `window.__PRELOAD_STATE__` 或 `window
 1. 打开扩展 **Options** 页。
 2. 在高级设置中勾选 **启用 Debug 模式**。
 3. 勾选 **保存调试日志到本地**（可选，用于离线排查）。
-4. 点击保存后重新加载扩展或刷新目标页面生效。
+4. 在 **日志留存等级** 中选择要保留的级别：
+   - `DEBUG`：最详细，包括所有请求/响应细节。
+   - `INFO`（默认）：常规流程日志。
+   - `WARN`：警告及以上。
+   - `ERROR`：仅错误。
+5. 点击保存后重新加载扩展或刷新目标页面生效。
 
 > Debug 模式仅在开发/测试阶段使用，生产包默认关闭，避免泄露敏感信息或占用过多存储。
 
@@ -100,15 +105,15 @@ ShopLine、ShopBase 等平台需要读取 `window.__PRELOAD_STATE__` 或 `window
 
 开启后，扩展会在 `console` 输出并可选写入 `chrome.storage.local` 的 `debug_logs` 键：
 
-| 记录点 | 内容 | 用途 |
-| --- | --- | --- |
-| 平台识别 | 当前 URL、匹配到的平台、confidence、URL 规则命中情况 | 解决“平台识别为未知” |
-| 可抓状态 | DOM 关键元素、选择器命中结果、API 状态码、注入脚本回调 | 解决“可抓状态为 false” |
-| 抓取过程 | 抓取器入口、中间状态、字段提取结果、缺失字段清单 | 校验字段映射与页面结构变化 |
-| MAIN world 注入 | 注入时机、目标 window 对象存在性、回传事件 payload | 排查 `__PRELOAD_STATE__` 读不到 |
-| XHR/fetch 拦截 | patch 成功标志、拦截到的请求 URL、响应摘要 | 排查拦截不到请求 |
-| 后端交互 | 请求头（不含 secret 明文）、payload 结构、响应码、响应体 | 联调后端接口 |
-| 异常与错误 | 报错堆栈、失败步骤、上下文快照 | 让 vibe/AI 快速定位根因 |
+| 记录点          | 内容                                                     | 用途                            |
+| --------------- | -------------------------------------------------------- | ------------------------------- |
+| 平台识别        | 当前 URL、匹配到的平台、confidence、URL 规则命中情况     | 解决“平台识别为未知”            |
+| 可抓状态        | DOM 关键元素、选择器命中结果、API 状态码、注入脚本回调   | 解决“可抓状态为 false”          |
+| 抓取过程        | 抓取器入口、中间状态、字段提取结果、缺失字段清单         | 校验字段映射与页面结构变化      |
+| MAIN world 注入 | 注入时机、目标 window 对象存在性、回传事件 payload       | 排查 `__PRELOAD_STATE__` 读不到 |
+| XHR/fetch 拦截  | patch 成功标志、拦截到的请求 URL、响应摘要               | 排查拦截不到请求                |
+| 后端交互        | 请求头（不含 secret 明文）、payload 结构、响应码、响应体 | 联调后端接口                    |
+| 异常与错误      | 报错堆栈、失败步骤、上下文快照                           | 让 vibe/AI 快速定位根因         |
 
 > 注意：日志中会对 `Authorization` 头、`secret`、完整 body 进行脱敏或截断，避免泄露凭据。
 
@@ -135,11 +140,12 @@ ShopLine、ShopBase 等平台需要读取 `window.__PRELOAD_STATE__` 或 `window
 }
 ```
 
-4. 可在 Console 中执行以下代码导出日志：
+4. 可在 Console 中执行以下代码导出日志（NDJSON 格式，每行一个 JSON 对象）：
 
 ```js
 chrome.storage.local.get('debug_logs', ({ debug_logs }) => {
-  console.log(JSON.stringify(debug_logs, null, 2));
+  const lines = debug_logs.entries.map((entry) => JSON.stringify(entry));
+  console.log(lines.join('\n'));
 });
 ```
 
@@ -165,7 +171,7 @@ Debug 日志会随时间增长，建议定期清理：
 
 ```js
 chrome.storage.local.set({
-  debug_logs: { enabled: true, persist: true, maxEntries: 500, entries: [] }
+  debug_logs: { enabled: true, persist: true, maxEntries: 500, level: 'info', entries: [] },
 });
 ```
 
@@ -185,7 +191,8 @@ log.error('MAIN world 注入失败', { error: err.message });
 ```
 
 Logger 会自动完成：
-- 按 `debug_logs.enabled` 过滤 `debug` 级别
+
+- 按 `debug_logs.enabled` 和 `debug_logs.level` 过滤日志级别
 - 按 `debug_logs.persist` 决定是否写入 `chrome.storage.local`
 - 对 `secret`、`Authorization`、`body` 等进行脱敏或截断
 

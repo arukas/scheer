@@ -33,6 +33,7 @@ src/content/extractors/
    - 多源合并
 
 2. **创建目录**
+
    ```bash
    mkdir src/content/extractors/<platform>
    ```
@@ -55,7 +56,7 @@ src/content/extractors/
    在 `product.ts` 中编写 `transform<Platform>Product`，输出严格符合 `docs/design.md` §6.1 的通用 Product。
    - 使用 `src/shared/schema.ts` 中的类型。
    - 只提交 `docs/design.md` §7.1 白名单字段。
-   - 注意 `main_sku`、图片 `categories`、价格单位、HTML 清洗等细节。
+   - 注意 `variant.options`、图片 `type`、价格单位、HTML 清洗等细节。
 
 6. **添加选择器规则**
    平台相关的 CSS 选择器、JSON 路径等写在 `selectors.json` 中，TS 代码读取该 JSON 而不是硬编码。
@@ -75,17 +76,17 @@ src/content/extractors/
 
 - [ ] `product.title` 已映射且非空。
 - [ ] `product.handle` 已映射。
-- [ ] `product.body_html` 已清洗懒加载图片 / 相对协议 URL / data-src 等。
+- [ ] `product.description_html` 已清洗懒加载图片 / 相对协议 URL / data-src 等。
 - [ ] `product.vendor`、`product_type`、`tags` 按参考项目处理。
 - [ ] `product.options` 顺序正确，无规格时默认 `Title / Default Title`。
 - [ ] `variants[].title` 非空。
-- [ ] `variants[].option1/2/3` 与 `options` 对齐。
+- [ ] `variants[].options` 与 `product.options` 对齐，每个元素包含 `name` 和 `value`。
 - [ ] `variants[].price` 为字符串，decimal(8,2) 格式。
 - [ ] `variants[].compare_at_price` 为空或低于 price 时按规则置 0。
-- [ ] `variants[].sku` 与 `main_sku`（第一个 `-` 前段）处理正确。
+- [ ] `variants[].sku` 透传平台原始 SKU，无需额外切分。
 - [ ] `variants[].image_id` 映射到 `images[].source_image_id`。
 - [ ] `images[].src` 补全 `https:`，去掉 query / 裁剪后缀。
-- [ ] `images[].categories`：1=图片，2=视频。
+- [ ] `images[].type`：`"image"` 或 `"video"`。
 - [ ] 外层 `platform / source_url / source_product_id` 正确。
 
 ## 代码风格

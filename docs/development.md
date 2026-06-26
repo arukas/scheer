@@ -15,6 +15,49 @@
 pnpm install
 ```
 
+## 代码规范与格式化
+
+项目使用 **Prettier** 统一代码格式，**ESLint** 检查 TypeScript 规范。
+
+```bash
+# 检查代码格式
+pnpm format:check
+
+# 自动格式化全部文件
+pnpm format
+
+# 检查 ESLint 规范
+pnpm lint
+
+# 自动修复 ESLint 可修复的问题
+pnpm lint:fix
+
+# 类型检查
+pnpm type-check
+```
+
+提交前建议依次运行：
+
+```bash
+pnpm format:check && pnpm lint && pnpm type-check && pnpm test
+```
+
+## Git 提交钩子
+
+项目已配置 `husky` + `lint-staged`，执行 `git commit` 时会自动：
+
+1. `lint-staged`：对暂存区文件运行 `prettier --check` 和 `eslint`
+2. `npm run type-check`：全仓库 TypeScript 类型检查
+3. `npm run test`：运行全部单元测试
+
+如果任一检查失败，提交会被阻止。首次克隆后运行 `pnpm install` 会自动通过 `prepare` 脚本安装 husky hooks。
+
+如想跳过钩子（不推荐），可加上 `--no-verify`：
+
+```bash
+git commit -m "..." --no-verify
+```
+
 ## 本地开发
 
 ```bash

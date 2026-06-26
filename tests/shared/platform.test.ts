@@ -8,6 +8,28 @@ import {
   getPageStatus,
 } from '@/shared/platform';
 
+vi.mock('@/shared/storage', () => ({
+  getDebugLogs: () =>
+    Promise.resolve({
+      enabled: false,
+      persist: false,
+      maxEntries: 500,
+      level: 'info',
+      entries: [],
+    }),
+  appendDebugLog: () => Promise.resolve(),
+}));
+
+function createApiResponse(overrides: { ok: boolean; status?: number; json?: unknown }) {
+  return {
+    ok: overrides.ok,
+    status: overrides.status ?? (overrides.ok ? 200 : 404),
+    statusText: overrides.ok ? 'OK' : 'Not Found',
+    json: async () => overrides.json ?? null,
+    headers: { get: () => null },
+  };
+}
+
 describe('extractHandle', () => {
   it('extracts handle from /products/<handle>', () => {
     const result = extractHandle('https://example.com/products/sample-product');
@@ -23,21 +45,15 @@ describe('extractHandle', () => {
 
 describe('detectPlatformByUrl', () => {
   it('detects tiktok shop', () => {
-    expect(
-      detectPlatformByUrl('https://shop.tiktok.com/view/product/123')
-    ).toBe('tiktok');
+    expect(detectPlatformByUrl('https://shop.tiktok.com/view/product/123')).toBe('tiktok');
   });
 
   it('detects myshopify.com as shopify', () => {
-    expect(
-      detectPlatformByUrl('https://example.myshopify.com/products/test')
-    ).toBe('shopify');
+    expect(detectPlatformByUrl('https://example.myshopify.com/products/test')).toBe('shopify');
   });
 
   it('returns null for unknown custom domain', () => {
-    expect(
-      detectPlatformByUrl('https://example.com/products/test')
-    ).toBeNull();
+    expect(detectPlatformByUrl('https://example.com/products/test')).toBeNull();
   });
 });
 
@@ -50,29 +66,27 @@ describe('detectPlatformByApi', () => {
   });
 
   it('detects shopify when .json returns product', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ product: { id: 1, title: 'Test' } }),
-    });
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 404 });
+    fetchMock.mockResolvedValueOnce(
+      createApiResponse({ ok: true, json: { product: { id: 1, title: 'Test' } } })
+    );
+    fetchMock.mockResolvedValueOnce(createApiResponse({ ok: false, status: 404 }));
 
     const result = await detectPlatformByApi('https://example.com/products/test');
     expect(result).toBe('shopify');
   });
 
   it('detects newshop when api returns ID', async () => {
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 404 });
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ ID: 123, title: 'Test' }),
-    });
+    fetchMock.mockResolvedValueOnce(createApiResponse({ ok: false, status: 404 }));
+    fetchMock.mockResolvedValueOnce(
+      createApiResponse({ ok: true, json: { ID: 123, title: 'Test' } })
+    );
 
     const result = await detectPlatformByApi('https://example.com/products/test');
     expect(result).toBe('newshop');
   });
 
   it('returns null when neither API matches', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+    fetchMock.mockResolvedValue(createApiResponse({ ok: false, status: 404 }));
 
     const result = await detectPlatformByApi('https://example.com/products/test');
     expect(result).toBeNull();

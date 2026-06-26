@@ -38,8 +38,16 @@ export interface ProductImage {
   /** 图片 URL，必须补全 https: */
   src: string;
   alt?: string;
-  /** 1=图片，2=视频 */
-  categories?: 1 | 2;
+  /** 媒体类型：image 或 video */
+  type?: 'image' | 'video';
+}
+
+/** 变体上的具体选项值 */
+export interface VariantOption {
+  /** 规格维度名称，如 "Farbe" */
+  name: string;
+  /** 该变体在此维度上的取值，如 "Schwarz" */
+  value: string;
 }
 
 /** 变体对象，对应后端 variants 表 */
@@ -49,24 +57,18 @@ export interface ProductVariant {
   /** 与 product_id 唯一的 position */
   position: number;
   title: string;
-  /** sku 第一个 '-' 前段；无 '-' 取整体；无 sku 存 '' */
-  main_sku: string;
-  option1: string;
-  option2?: string | null;
-  option3?: string | null;
   /** decimal(8,2) 字符串 */
   price: string;
   compare_at_price?: string;
   sku?: string;
   barcode?: string;
+  /** 该变体在所有规格维度上的取值 */
+  options: VariantOption[];
   /** 关联 images[].source_image_id */
   source_image_id?: string;
   grams: number;
   weight?: number | null;
   weight_unit?: string | null;
-  taxable: 1 | 0;
-  tax_code?: string | null;
-  presentment_prices?: unknown[];
 }
 
 /** 商品规格维度定义 */
@@ -80,10 +82,10 @@ export interface ProductOption {
 export interface Product {
   title: string;
   handle?: string;
-  body_html?: string;
+  description_html?: string;
   vendor?: string;
   product_type?: string;
-  tags?: string;
+  tags?: string[];
   options?: ProductOption[];
   published_scope?: string;
   variants: ProductVariant[];
@@ -128,6 +130,10 @@ export interface ServerConfig {
   timeout_ms?: number;
 }
 
+/** 日志级别，按 verbosity 从低到高排列 */
+export const DEBUG_LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const;
+export type DebugLogLevel = (typeof DEBUG_LOG_LEVELS)[number];
+
 /** 采集行为配置（v1 固定字段，评论相关等待 v2） */
 export interface CrawlConfig {
   product_mode: 'manual';
@@ -145,6 +151,8 @@ export interface DebugConfig {
   persist: boolean;
   /** 本地日志最大条数，默认 500 */
   maxEntries: number;
+  /** 日志留存级别：debug < info < warn < error */
+  level: DebugLogLevel;
 }
 
 /** 用户配置，整体存 chrome.storage.local 的 config 键 */
@@ -176,6 +184,7 @@ export const DEFAULT_CONFIG: Config = {
     enabled: false,
     persist: false,
     maxEntries: 500,
+    level: 'info',
   },
 };
 
@@ -196,9 +205,6 @@ export interface HistoryItem {
 // ============================================================================
 // Debug 日志类型
 // ============================================================================
-
-/** 日志级别 */
-export type DebugLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 /** 单条日志条目 */
 export interface DebugLogEntry {
@@ -229,6 +235,8 @@ export interface DebugLogs {
   persist: boolean;
   /** 最大保留条数 */
   maxEntries: number;
+  /** 日志留存级别，与 Config.debug.level 保持一致 */
+  level: DebugLogLevel;
   /** 日志条目，按时间递增 */
   entries: DebugLogEntry[];
 }
@@ -238,13 +246,14 @@ export const DEFAULT_DEBUG_LOGS: DebugLogs = {
   enabled: false,
   persist: false,
   maxEntries: 500,
+  level: 'info',
   entries: [],
 };
 
 /** Logger 接口 */
 export interface Logger {
-  debug(message: string, payload?: unknown): void;
-  info(message: string, payload?: unknown): void;
-  warn(message: string, payload?: unknown): void;
-  error(message: string, payload?: unknown): void;
+  debug(message: string, payload?: unknown): Promise<void>;
+  info(message: string, payload?: unknown): Promise<void>;
+  warn(message: string, payload?: unknown): Promise<void>;
+  error(message: string, payload?: unknown): Promise<void>;
 }

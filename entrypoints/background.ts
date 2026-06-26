@@ -20,17 +20,23 @@ export default defineBackground(() => {
   const log = createLogger('background/main');
 
   // 安装/更新时初始化 storage 默认值
-  storage.getItem<Record<string, unknown>>('local:debug_logs').then((existing) => {
-    if (!existing) {
-      return storage.setItem('local:debug_logs', DEFAULT_DEBUG_LOGS);
-    }
-  }).catch((err) => console.error('[background] init debug_logs failed', err));
+  storage
+    .getItem<Record<string, unknown>>('local:debug_logs')
+    .then((existing) => {
+      if (!existing) {
+        return storage.setItem('local:debug_logs', DEFAULT_DEBUG_LOGS);
+      }
+    })
+    .catch((err) => console.error('[background] init debug_logs failed', err));
 
-  storage.getItem<Record<string, unknown>>('local:config').then((existing) => {
-    if (!existing) {
-      return storage.setItem('local:config', DEFAULT_CONFIG);
-    }
-  }).catch((err) => console.error('[background] init config failed', err));
+  storage
+    .getItem<Record<string, unknown>>('local:config')
+    .then((existing) => {
+      if (!existing) {
+        return storage.setItem('local:config', DEFAULT_CONFIG);
+      }
+    })
+    .catch((err) => console.error('[background] init config failed', err));
 
   log.debug('Service Worker 已启动');
 
@@ -43,7 +49,12 @@ export default defineBackground(() => {
         try {
           const result = await getActivePageStatus();
           if (!result) {
-            sendResponse({ url: '', platform: null, canExtract: false, reason: '获取当前标签页失败' });
+            sendResponse({
+              url: '',
+              platform: null,
+              canExtract: false,
+              reason: '获取当前标签页失败',
+            });
             break;
           }
           const { source } = result;
@@ -51,7 +62,12 @@ export default defineBackground(() => {
           sendResponse(result.status);
         } catch (err) {
           log.error('GET_PAGE_STATUS 失败', { error: (err as Error).message });
-          sendResponse({ url: '', platform: null, canExtract: false, reason: '获取当前标签页失败' });
+          sendResponse({
+            url: '',
+            platform: null,
+            canExtract: false,
+            reason: '获取当前标签页失败',
+          });
         }
         break;
       }
@@ -63,13 +79,16 @@ export default defineBackground(() => {
       }
 
       case 'SET_CONFIG': {
-        const { config } = (message as { payload: { config: import('../src/shared/schema').Config } }).payload;
+        const { config } = (
+          message as { payload: { config: import('../src/shared/schema').Config } }
+        ).payload;
         await setConfig(config);
-        // 同步更新 debug_logs 的 enabled / persist / maxEntries
+        // 同步更新 debug_logs 的 enabled / persist / maxEntries / level
         const logs = await getDebugLogs();
         logs.enabled = config.debug.enabled;
         logs.persist = config.debug.persist;
         logs.maxEntries = config.debug.maxEntries;
+        logs.level = config.debug.level;
         await storage.setItem('local:debug_logs', logs);
         sendResponse({ success: true });
         break;
@@ -111,7 +130,9 @@ export default defineBackground(() => {
           const extractResponse = (await chrome.tabs.sendMessage(tab.id, {
             type: 'EXTRACT_PRODUCT',
             payload: { platform: pageStatus.platform },
-          })) as { success: true; payload: CreateProductPayload } | { success: false; error: string };
+          })) as
+            | { success: true; payload: CreateProductPayload }
+            | { success: false; error: string };
 
           if (!extractResponse.success) {
             throw new Error(extractResponse.error || '内容脚本采集失败');
@@ -162,7 +183,9 @@ export default defineBackground(() => {
 
       case 'TEST_CONFIG': {
         try {
-          const { config } = (message as { payload: { config: import('../src/shared/schema').Config } }).payload;
+          const { config } = (
+            message as { payload: { config: import('../src/shared/schema').Config } }
+          ).payload;
           if (!config.server.secret) {
             throw new Error('后端密钥未配置');
           }
@@ -190,14 +213,16 @@ async function getTabHtml(tabId: number): Promise<string | null> {
     });
     const html = result?.result;
     return typeof html === 'string' && html.length > 0 ? html : null;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
 
-async function getActivePageStatus(): Promise<
-  { tab: chrome.tabs.Tab; status: PageStatus; source: 'content' | 'scripting' | 'url' } | null
-> {
+async function getActivePageStatus(): Promise<{
+  tab: chrome.tabs.Tab;
+  status: PageStatus;
+  source: 'content' | 'scripting' | 'url';
+} | null> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return null;
   const url = tab.url ?? '';
@@ -230,9 +255,10 @@ async function recordHistory(
   partial: Omit<HistoryItem, 'id' | 'created_at' | 'updated_at'>
 ): Promise<void> {
   const now = new Date().toISOString();
-  const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const id =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   const item: HistoryItem = {
     ...partial,

@@ -40,12 +40,12 @@ function Popup() {
 
   async function exportLogs() {
     if (!logs) return;
-    const text = JSON.stringify(logs, null, 2);
-    const blob = new Blob([text], { type: 'application/json' });
+    const text = await sendMessage<string>({ type: 'EXPORT_DEBUG_LOGS' });
+    const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `scheer-debug-logs-${new Date().toISOString()}.json`;
+    a.download = `scheer-debug-logs-${new Date().toISOString()}.log`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -88,7 +88,10 @@ function Popup() {
               payload: { platform: status.platform },
             });
           } catch (err) {
-            productPayload = { success: false, error: err instanceof Error ? err.message : String(err) };
+            productPayload = {
+              success: false,
+              error: err instanceof Error ? err.message : String(err),
+            };
           }
         }
       }
@@ -126,7 +129,10 @@ function Popup() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('导出诊断包失败', err);
-      setSubmitResult({ success: false, error: `导出诊断包失败：${err instanceof Error ? err.message : String(err)}` });
+      setSubmitResult({
+        success: false,
+        error: `导出诊断包失败：${err instanceof Error ? err.message : String(err)}`,
+      });
     } finally {
       setExportingDiagnostics(false);
     }
@@ -134,9 +140,9 @@ function Popup() {
 
   const configReady = Boolean(
     config &&
-      resolveEndpoint(config.server.base ?? '', config.server.create_product_endpoint) &&
-      resolveEndpoint(config.server.base ?? '', config.server.current_user_endpoint) &&
-      config.server.secret
+    resolveEndpoint(config.server.base ?? '', config.server.create_product_endpoint) &&
+    resolveEndpoint(config.server.base ?? '', config.server.current_user_endpoint) &&
+    config.server.secret
   );
 
   const canCreate = configReady && status?.canExtract;
@@ -185,9 +191,7 @@ function Popup() {
         {!configReady && (
           <p className="popup-hint">请先在 Options 中配置后端域名、接口地址和密钥。</p>
         )}
-        {configReady && !status?.canExtract && (
-          <p className="popup-hint">当前页面暂不支持采集。</p>
-        )}
+        {configReady && !status?.canExtract && <p className="popup-hint">当前页面暂不支持采集。</p>}
         {submitResult && (
           <div className={`popup-result ${submitResult.success ? 'success' : 'error'}`}>
             {submitResult.success ? (
@@ -211,7 +215,9 @@ function Popup() {
         </div>
         <div className="popup-row">
           <span className="popup-label">本地日志</span>
-          <span className="popup-value">{logs?.persist ? `${logs.entries.length} 条` : '未持久化'}</span>
+          <span className="popup-value">
+            {logs?.persist ? `${logs.entries.length} 条` : '未持久化'}
+          </span>
         </div>
         {logs?.enabled && (
           <button
