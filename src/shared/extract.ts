@@ -9,6 +9,7 @@ import type { CreateProductPayload, PlatformKey } from './schema';
 import { extractShopifyProduct } from './extractors/shopify';
 import { extractShoplineProduct } from './extractors/shopline';
 import { extractNewshopProduct } from './extractors/newshop';
+import { extractShadowshopProduct } from './extractors/shadowshop';
 import { extractJsonLdProduct } from './extractors/jsonld';
 
 const log = createLogger('shared/extract');
@@ -31,12 +32,13 @@ export async function extractProduct(
       }
     case 'newshop':
       return extractNewshopProduct(url);
+    case 'shadowshop':
+      return extractShadowshopProduct(url, doc);
     case 'shopbase':
     case 'shoplazza':
     case 'xshoppy':
     case 'tiktok':
     case 'wordpress':
-    case 'shadowshop':
       throw new Error(`平台 ${platform} 识别成功，但采集器尚未实现`);
     default:
       throw new Error(`暂不支持平台：${platform}`);
