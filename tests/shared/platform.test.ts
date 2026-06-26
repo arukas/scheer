@@ -119,6 +119,12 @@ describe('detectPlatformByHtml', () => {
     expect(detectPlatformByHtml(html)).toBe('newshop');
   });
 
+  it('detects NewShop by newfastcdn.com script host', () => {
+    const html =
+      '<html><head><script src="https://cdn.newfastcdn.com/static/app.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('newshop');
+  });
+
   it('detects Shopify by cdn/shopifycloud script path', () => {
     const html =
       '<html><head><script src="https://example.com/cdn/shopifycloud/bar.js"></script></head></html>';
