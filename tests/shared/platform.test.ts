@@ -161,6 +161,17 @@ describe('detectPlatformByHtml', () => {
     expect(detectPlatformByHtml(html)).toBe('shadowshop');
   });
 
+  it('detects ShopLazza by staticdj.com script host', () => {
+    const html =
+      '<html><head><script src="https://static.staticdj.com/static/app.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('shoplazza');
+  });
+
+  it('does not detect ShopLazza by C_SETTINGS alone', () => {
+    const html = '<html><head><script>window.C_SETTINGS = {};</script></head></html>';
+    expect(detectPlatformByHtml(html)).toBeNull();
+  });
+
   it('returns null when no known script marker', () => {
     const html = '<html><head><script src="https://example.com/app.js"></script></head></html>';
     expect(detectPlatformByHtml(html)).toBeNull();
