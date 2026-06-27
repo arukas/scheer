@@ -11,6 +11,7 @@ import { extractShoplineProduct } from './extractors/shopline';
 import { extractNewshopProduct } from './extractors/newshop';
 import { extractShadowshopProduct } from './extractors/shadowshop';
 import { extractShoplazzaProduct } from './extractors/shoplazza';
+import { extractShopbaseProduct } from './extractors/shopbase';
 import { extractJsonLdProduct } from './extractors/jsonld';
 
 const log = createLogger('shared/extract');
@@ -38,6 +39,7 @@ export async function extractProduct(
     case 'shoplazza':
       return extractShoplazzaProduct(url, doc);
     case 'shopbase':
+      return extractShopbaseProduct(url, doc);
     case 'xshoppy':
     case 'tiktok':
     case 'wordpress':
