@@ -12,6 +12,7 @@ import { extractNewshopProduct } from './extractors/newshop';
 import { extractShadowshopProduct } from './extractors/shadowshop';
 import { extractShoplazzaProduct } from './extractors/shoplazza';
 import { extractShopbaseProduct } from './extractors/shopbase';
+import { extractTiktokProduct } from './extractors/tiktok';
 import { extractJsonLdProduct } from './extractors/jsonld';
 
 const log = createLogger('shared/extract');
@@ -40,8 +41,9 @@ export async function extractProduct(
       return extractShoplazzaProduct(url, doc);
     case 'shopbase':
       return extractShopbaseProduct(url, doc);
-    case 'xshoppy':
     case 'tiktok':
+      return extractTiktokProduct(url, doc);
+    case 'xshoppy':
     case 'wordpress':
       throw new Error(`平台 ${platform} 识别成功，但采集器尚未实现`);
     default:
