@@ -193,6 +193,11 @@ export function detectPlatformByHtml(html: string): PlatformKey | null {
     return 'shoplazza';
   }
 
+  // ShopBase：脚本 host 包含 thesitebase.net
+  if (srcs.some((src) => src.includes('thesitebase.net'))) {
+    return 'shopbase';
+  }
+
   return null;
 }
 

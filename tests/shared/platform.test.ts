@@ -161,6 +161,12 @@ describe('detectPlatformByHtml', () => {
     expect(detectPlatformByHtml(html)).toBe('shadowshop');
   });
 
+  it('detects ShopBase by thesitebase.net script host', () => {
+    const html =
+      '<html><head><script src="https://cdn.thesitebase.net/static/app.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('shopbase');
+  });
+
   it('detects ShopLazza by staticdj.com script host', () => {
     const html =
       '<html><head><script src="https://static.staticdj.com/static/app.js"></script></head></html>';
