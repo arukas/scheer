@@ -23,6 +23,16 @@ function Options() {
 
   async function save() {
     if (!config) return;
+
+    if (!config.server.secret.trim()) {
+      setStatus('后端密钥不能为空');
+      return;
+    }
+    if (!config.server.base.trim() && !config.server.create_product_endpoint.trim()) {
+      setStatus('后端域名与创建商品接口地址至少填写一项');
+      return;
+    }
+
     try {
       await sendMessage({ type: 'SET_CONFIG', payload: { config } });
       setStatus('配置已保存');
@@ -37,6 +47,12 @@ function Options() {
   }
 
   function updateDebug(partial: Partial<Config['debug']>) {
+    if (partial.maxEntries !== undefined) {
+      let value = Number(partial.maxEntries);
+      if (Number.isNaN(value)) value = 500;
+      value = Math.max(50, Math.min(5000, value));
+      partial = { ...partial, maxEntries: value };
+    }
     setConfig((prev) => (prev ? { ...prev, debug: { ...prev.debug, ...partial } } : prev));
   }
 

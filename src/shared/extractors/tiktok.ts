@@ -19,6 +19,7 @@ import type {
   VariantOption,
 } from '../schema';
 import { createLogger } from '../logger';
+import { formatPrice } from '../price';
 
 const log = createLogger('shared/extractors/tiktok');
 
@@ -292,19 +293,20 @@ function convertVariants(
 
     const priceValue =
       skuName && priceMap.has(skuName) ? priceMap.get(skuName) : toNumberOrUndefined(sku.price);
-    const price = priceValue ?? 0;
+    const price = formatPrice(priceValue);
+    const numericPrice = Number(price);
 
     const discountDecimal = toNumberOrUndefined(promotionModel?.discount_decimal);
     const compareAtPrice =
-      discountDecimal && discountDecimal > 0 ? price / discountDecimal : undefined;
+      discountDecimal && discountDecimal > 0 ? numericPrice / discountDecimal : undefined;
 
     return {
       source_variant_id: sku.id != null ? String(sku.id) : undefined,
       position: idx + 1,
       title,
-      price: price.toFixed(2),
+      price,
       compare_at_price:
-        compareAtPrice !== undefined && compareAtPrice > price
+        compareAtPrice !== undefined && compareAtPrice > numericPrice
           ? compareAtPrice.toFixed(2)
           : undefined,
       sku: skuName || undefined,

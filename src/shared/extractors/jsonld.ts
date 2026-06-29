@@ -13,6 +13,7 @@ import type {
   ProductVariant,
 } from '../schema';
 import { extractHandle } from '../platform';
+import { formatPrice } from '../price';
 
 type RawObject = Record<string, unknown>;
 
@@ -116,8 +117,7 @@ function extractVariants(product: RawObject): {
 
   const variants = offers.map((offer, idx) => {
     const sku = toStringOrUndefined(offer.sku);
-    const price =
-      typeof offer.price === 'number' ? offer.price.toFixed(2) : String(offer.price ?? '0');
+    const price = formatPrice(offer.price);
     return {
       source_variant_id: toStringOrUndefined(offer.sku) ?? String(idx + 1),
       position: idx + 1,

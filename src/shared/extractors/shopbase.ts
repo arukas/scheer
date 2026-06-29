@@ -17,6 +17,7 @@ import type {
 } from '../schema';
 import { extractHandle } from '../platform';
 import { createLogger } from '../logger';
+import { formatPrice, formatCompareAtPrice } from '../price';
 
 const log = createLogger('shared/extractors/shopbase');
 
@@ -187,18 +188,14 @@ function convertVariants(
   if (!Array.isArray(variants)) return [];
 
   return variants.map((v, idx) => {
-    const price = toNumberOrUndefined(v.price) ?? 0;
-    const compareAtPrice = toNumberOrUndefined(v.compare_at_price);
+    const price = formatPrice(v.price);
 
     return {
       source_variant_id: v.id != null ? String(v.id) : undefined,
       position: idx + 1,
       title: String(v.title ?? `Variant ${idx + 1}`),
-      price: price.toFixed(2),
-      compare_at_price:
-        compareAtPrice !== undefined && compareAtPrice > price
-          ? compareAtPrice.toFixed(2)
-          : undefined,
+      price,
+      compare_at_price: formatCompareAtPrice(v.compare_at_price, price),
       sku: toStringOrUndefined(v.sku),
       barcode: toStringOrUndefined(v.barcode),
       options: buildVariantOptions(v, options, rawOptions),
@@ -217,17 +214,13 @@ function convertProduct(raw: RawObject, url: string): Product {
 
   // 无变体时兜底
   if (variants.length === 0) {
-    const price = toNumberOrUndefined(raw.price) ?? 0;
-    const compareAtPrice = toNumberOrUndefined(raw.compare_at_price);
+    const price = formatPrice(raw.price);
     variants = [
       {
         position: 1,
         title: 'Default Title',
-        price: price.toFixed(2),
-        compare_at_price:
-          compareAtPrice !== undefined && compareAtPrice > price
-            ? compareAtPrice.toFixed(2)
-            : undefined,
+        price,
+        compare_at_price: formatCompareAtPrice(raw.compare_at_price, price),
         sku: toStringOrUndefined(raw.sku),
         barcode: toStringOrUndefined(raw.barcode),
         options: [{ name: 'Title', value: 'Default Title' }],

@@ -21,6 +21,11 @@ export default defineContentScript({
     onMessage(async (message, _sender, sendResponse) => {
       if (typeof message !== 'object' || !message.type) return;
 
+      if (message.type === 'PING') {
+        sendResponse({ ok: true });
+        return;
+      }
+
       if (message.type === 'GET_PAGE_STATUS') {
         try {
           const current = await getPageStatus(location.href, document.documentElement.outerHTML);
@@ -64,7 +69,10 @@ export default defineContentScript({
 
       if (message.type === 'EXTRACT_PRODUCT') {
         try {
-          const { platform } = message.payload;
+          const platform = message.payload?.platform;
+          if (!platform) {
+            throw new Error('消息缺少 platform 参数');
+          }
           log.info('开始采集商品', { platform, url: location.href });
           const payload = await extractProduct(location.href, platform, document);
           log.info('采集完成', { platform, source_product_id: payload.source_product_id });

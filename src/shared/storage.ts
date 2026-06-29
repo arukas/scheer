@@ -98,8 +98,22 @@ export async function getHistory(): Promise<HistoryItem[]> {
   return historyItem.getValue();
 }
 
+function isHistoryItemExpired(item: HistoryItem, keepDays: number): boolean {
+  if (keepDays <= 0) return false;
+  const cutoff = Date.now() - keepDays * 24 * 60 * 60 * 1000;
+  const itemTime = new Date(item.created_at).getTime();
+  return Number.isFinite(itemTime) && itemTime < cutoff;
+}
+
 export async function appendHistory(item: HistoryItem): Promise<void> {
+  const config = await getConfig();
+  const keepDays = config.storage?.keep_history_days ?? 30;
+
   const history = await getHistory();
   history.unshift(item);
-  await historyItem.setValue(history);
+
+  // 清理过期记录，避免 storage 无限增长
+  const filtered =
+    keepDays > 0 ? history.filter((h) => !isHistoryItemExpired(h, keepDays)) : history;
+  await historyItem.setValue(filtered);
 }

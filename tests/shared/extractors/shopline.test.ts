@@ -88,7 +88,8 @@ describe('extractShoplineProduct', () => {
     expect(payload.product.title).toBe('Loose high waist sequined wide-leg pants');
     expect(payload.product.variants).toHaveLength(1);
     expect(payload.product.variants[0].price).toBe('13794.00');
-    expect(payload.product.variants[0].compare_at_price).toBe('32.98');
+    // compare_at_price 原始值 32.98 小于 price，应回退为 price
+    expect(payload.product.variants[0].compare_at_price).toBe('13794.00');
     expect(payload.product.variants[0].grams).toBe(200);
     expect(payload.product.variants[0].options).toEqual([
       { name: 'Color', value: 'Silver' },

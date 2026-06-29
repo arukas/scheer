@@ -188,13 +188,18 @@ export const DEFAULT_CONFIG: Config = {
     maxEntries: 500,
     level: 'info',
   },
+  storage: {
+    keep_history_days: 30,
+    product_dedup_key: 'source_url',
+  },
 };
 
 /** 本地历史项 */
 export interface HistoryItem {
   id: string;
   source_url: string;
-  platform: PlatformKey;
+  /** platform code，与 CreateProductPayload.platform 保持一致 */
+  platform: PlatformCode;
   status: 'success' | 'failed';
   product_id?: string;
   log_id?: string;

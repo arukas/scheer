@@ -15,6 +15,7 @@ import type {
 } from '../schema';
 import { extractHandle } from '../platform';
 import { fetchJson } from '../fetch';
+import { formatPrice, formatCompareAtPrice } from '../price';
 
 type RawObject = Record<string, unknown>;
 
@@ -120,8 +121,8 @@ function convertVariants(
       source_variant_id: v.id != null ? String(v.id) : undefined,
       position: Number(v.position ?? idx + 1),
       title: String(v.title ?? ''),
-      price: String(v.price ?? '0'),
-      compare_at_price: toStringOrUndefined(v.compare_at_price),
+      price: formatPrice(v.price),
+      compare_at_price: formatCompareAtPrice(v.compare_at_price, formatPrice(v.price)),
       sku,
       barcode: toStringOrUndefined(v.barcode),
       options: buildVariantOptions(v, productOptions),

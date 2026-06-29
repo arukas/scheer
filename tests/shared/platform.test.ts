@@ -6,6 +6,7 @@ import {
   detectPlatformByHtml,
   detectPlatform,
   getPageStatus,
+  isAllowedProductUrl,
 } from '@/shared/platform';
 
 vi.mock('@/shared/storage', () => ({
@@ -37,9 +38,41 @@ describe('extractHandle', () => {
     expect(result.handle).toBe('sample-product');
   });
 
+  it('extracts handle from /product/<handle>', () => {
+    const result = extractHandle('https://example.com/product/sample-product');
+    expect(result.handle).toBe('sample-product');
+  });
+
+  it('does not extract handle from /p/<handle>', () => {
+    const result = extractHandle('https://example.com/p/sample-product');
+    expect(result.handle).toBeNull();
+  });
+
   it('returns null handle for non-product URLs', () => {
     const result = extractHandle('https://example.com/collections/all');
     expect(result.handle).toBeNull();
+  });
+});
+
+describe('isAllowedProductUrl', () => {
+  it('allows https product pages', () => {
+    expect(isAllowedProductUrl('https://example.com/products/sample')).toBe(true);
+    expect(isAllowedProductUrl('https://example.com/product/sample')).toBe(true);
+  });
+
+  it('rejects non-https pages', () => {
+    expect(isAllowedProductUrl('http://example.com/products/sample')).toBe(false);
+  });
+
+  it('rejects pages without product path', () => {
+    expect(isAllowedProductUrl('https://example.com/collections/all')).toBe(false);
+    expect(isAllowedProductUrl('https://example.com/p/sample')).toBe(false);
+  });
+
+  it('exempts tiktok hosts from product path check', () => {
+    expect(isAllowedProductUrl('https://shop.tiktok.com/view/product/123')).toBe(true);
+    expect(isAllowedProductUrl('https://www.tiktok.com/tiktok-shop/something')).toBe(true);
+    expect(isAllowedProductUrl('https://item.tk/123')).toBe(true);
   });
 });
 

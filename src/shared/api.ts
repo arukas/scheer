@@ -158,7 +158,12 @@ export async function submitCreateProduct(
     signal: controller.signal,
   };
 
-  const bodySummary = `{"platform":"${payload.platform}","source_url":"${payload.source_url}","source_product_id":"${payload.source_product_id}","product":{...${bodyString.length} bytes}}`;
+  const bodySummary = JSON.stringify({
+    platform: payload.platform,
+    source_url: payload.source_url,
+    source_product_id: payload.source_product_id,
+    product: `...${bodyString.length} bytes`,
+  });
 
   await log.info('发送创建商品请求', {
     url,

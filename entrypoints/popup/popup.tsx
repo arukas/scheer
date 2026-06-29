@@ -19,6 +19,21 @@ function Popup() {
 
   useEffect(() => {
     refresh();
+
+    // 用户切换标签页或当前页 URL 变化时刷新状态
+    const handleTabChange = () => {
+      // 清除上一次提交结果，避免跨页面残留
+      setSubmitResult(null);
+      refresh();
+    };
+
+    chrome.tabs.onActivated.addListener(handleTabChange);
+    chrome.tabs.onUpdated.addListener(handleTabChange);
+
+    return () => {
+      chrome.tabs.onActivated.removeListener(handleTabChange);
+      chrome.tabs.onUpdated.removeListener(handleTabChange);
+    };
   }, []);
 
   async function refresh() {

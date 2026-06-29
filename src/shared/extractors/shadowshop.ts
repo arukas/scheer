@@ -17,6 +17,7 @@ import type {
 } from '../schema';
 import { extractHandle } from '../platform';
 import { createLogger } from '../logger';
+import { formatPrice, formatCompareAtPrice } from '../price';
 
 const log = createLogger('shared/extractors/shadowshop');
 
@@ -275,17 +276,14 @@ function convertVariants(
   if (!Array.isArray(configurableChildren)) return [];
 
   return configurableChildren.map((child, idx) => {
-    const price = toNumberOrUndefined(child.final_price ?? child.special_price ?? child.price) ?? 0;
-    const originalPrice = toNumberOrUndefined(child.original_price);
-    const compareAtPrice =
-      originalPrice !== undefined && originalPrice > price ? originalPrice.toFixed(2) : undefined;
+    const price = formatPrice(child.final_price ?? child.special_price ?? child.price);
 
     return {
       source_variant_id: toStringOrUndefined(child.id),
       position: idx + 1,
       title: String(child.name ?? `Variant ${idx + 1}`),
-      price: price.toFixed(2),
-      compare_at_price: compareAtPrice,
+      price,
+      compare_at_price: formatCompareAtPrice(child.original_price, price),
       sku: toStringOrUndefined(child.sku),
       barcode: toStringOrUndefined(child.barcode),
       options: buildVariantOptions(child, configurableOptions),
@@ -310,17 +308,13 @@ function convertProduct(raw: RawObject, state: RawObject, url: string): Product 
 
   // 无变体时，用商品级价格兜底
   if (variants.length === 0) {
-    const price = toNumberOrUndefined(raw.final_price ?? raw.special_price ?? raw.price) ?? 0;
-    const originalPrice = toNumberOrUndefined(raw.original_price);
+    const price = formatPrice(raw.final_price ?? raw.special_price ?? raw.price);
     variants = [
       {
         position: 1,
         title: 'Default Title',
-        price: price.toFixed(2),
-        compare_at_price:
-          originalPrice !== undefined && originalPrice > price
-            ? originalPrice.toFixed(2)
-            : undefined,
+        price,
+        compare_at_price: formatCompareAtPrice(raw.original_price, price),
         sku: toStringOrUndefined(raw.sku),
         barcode: toStringOrUndefined(raw.barcode),
         options: [{ name: 'Title', value: 'Default Title' }],

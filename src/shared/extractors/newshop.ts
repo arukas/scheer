@@ -15,6 +15,7 @@ import type {
 } from '../schema';
 import { extractHandle } from '../platform';
 import { fetchJson } from '../fetch';
+import { formatPrice, formatCompareAtPrice } from '../price';
 
 const API_TIMEOUT_MS = 10000;
 
@@ -151,16 +152,14 @@ function convertVariants(
     const sourceImageId =
       imageId && images.some((img) => img.source_image_id === imageId) ? imageId : undefined;
 
-    const priceNum = typeof v.price === 'number' ? v.price : Number(v.price ?? 0);
-    const compareNum = v.regular_price != null ? Number(v.regular_price) : undefined;
+    const price = formatPrice(v.price);
 
     return {
       source_variant_id: v.ID != null ? String(v.ID) : undefined,
       position: idx + 1,
       title: String(v.title ?? ''),
-      price: priceNum.toFixed(2),
-      compare_at_price:
-        compareNum != null && compareNum > priceNum ? compareNum.toFixed(2) : undefined,
+      price,
+      compare_at_price: formatCompareAtPrice(v.regular_price, price),
       sku,
       barcode: toStringOrUndefined(v.bar_code),
       options: buildVariantOptions((v.attrs ?? []) as RawObject[], productOptions),
@@ -183,15 +182,13 @@ function convertProduct(raw: RawObject): Product {
 
   // 无 variants 时，用商品级价格生成一个默认 variant
   if (variants.length === 0) {
-    const priceNum = typeof raw.price === 'number' ? raw.price : Number(raw.price ?? 0);
-    const compareNum = raw.regular_price != null ? Number(raw.regular_price) : undefined;
+    const price = formatPrice(raw.price);
     variants = [
       {
         position: 1,
         title: String(raw.title ?? 'Default Title'),
-        price: priceNum.toFixed(2),
-        compare_at_price:
-          compareNum != null && compareNum > priceNum ? compareNum.toFixed(2) : undefined,
+        price,
+        compare_at_price: formatCompareAtPrice(raw.regular_price, price),
         sku: toStringOrUndefined(raw.sku),
         options: [{ name: 'Title', value: 'Default Title' }],
         grams: 0,

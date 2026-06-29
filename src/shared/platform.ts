@@ -23,14 +23,49 @@ const log = createLogger('shared/platform');
 
 const API_TIMEOUT_MS = 5000;
 
+const PRODUCT_PATH_SEGMENTS = ['products', 'product'];
+
+function isTikTokHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return h.includes('tiktok') || h.includes('.tk');
+}
+
+/**
+ * 判断 URL 是否处于扩展支持的采集范围。
+ * - 仅允许 https 页面
+ * - 路径需包含 /products/ 或 /product/
+ * - TikTok 相关域名（host 含 tiktok 或 .tk）豁免路径检查
+ */
+export function isAllowedProductUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:') return false;
+
+    const host = u.hostname.toLowerCase();
+    if (isTikTokHost(host)) return true;
+
+    const path = u.pathname.toLowerCase();
+    return path.includes('/products/') || path.includes('/product/');
+  } catch {
+    return false;
+  }
+}
+
 export function extractHandle(url: string): { host: string; handle: string | null } {
   try {
     const u = new URL(url);
     const host = u.hostname.toLowerCase();
     const paths = u.pathname.split('/').filter(Boolean);
-    const idx = paths.indexOf('products');
-    const handle = idx >= 0 ? (paths[idx + 1] ?? null) : null;
-    return { host, handle };
+
+    for (const segment of PRODUCT_PATH_SEGMENTS) {
+      const idx = paths.indexOf(segment);
+      if (idx >= 0) {
+        const handle = paths[idx + 1] ?? null;
+        if (handle) return { host, handle };
+      }
+    }
+
+    return { host, handle: null };
   } catch {
     return { host: '', handle: null };
   }
@@ -83,6 +118,10 @@ async function fetchJson(url: string, options?: RequestInit): Promise<unknown> {
   }
 }
 
+/**
+ * @deprecated 当前平台探测主流程不再主动调用店铺 API，避免在未知站点上产生多余请求。
+ * 保留此函数仅用于历史兼容与单元测试，后续如重新启用需评估隐私与性能影响。
+ */
 export async function detectPlatformByApi(url: string): Promise<PlatformKey | null> {
   const { host, handle } = extractHandle(url);
   if (!host || !handle) {
@@ -226,6 +265,15 @@ export async function checkCanExtract(
 }
 
 export async function getPageStatus(url: string, html?: string): Promise<PageStatus> {
+  if (!isAllowedProductUrl(url)) {
+    return {
+      url,
+      platform: null,
+      canExtract: false,
+      reason: '当前页面不在支持的采集范围（需 https 商品页）',
+    };
+  }
+
   const platform = await detectPlatform(url, html);
   const { canExtract, reason } = await checkCanExtract(platform);
   return { url, platform, canExtract, reason };

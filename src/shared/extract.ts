@@ -43,8 +43,10 @@ export async function extractProduct(
       return extractShopbaseProduct(url, doc);
     case 'tiktok':
       return extractTiktokProduct(url, doc);
-    case 'xshoppy':
     case 'wordpress':
+      // WordPress 独立站通常带有 JSON-LD Product 结构化数据，作为兜底采集
+      return extractJsonLdProduct(url, 'wordpress', doc);
+    case 'xshoppy':
       throw new Error(`平台 ${platform} 识别成功，但采集器尚未实现`);
     default:
       throw new Error(`暂不支持平台：${platform}`);

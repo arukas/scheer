@@ -150,7 +150,7 @@ export default defineBackground(() => {
           await recordHistory({
             status: 'success',
             source_url: payload.source_url,
-            platform: payload.platform as HistoryItem['platform'],
+            platform: payload.platform,
             product_id: result.product_id,
             log_id: result.log_id,
             user: result.user,
@@ -204,28 +204,56 @@ export default defineBackground(() => {
     }
   });
 
-  async function sendToContentScript<T>(tabId: number, message: unknown, retries = 1): Promise<T> {
+  async function sendToContentScript<T>(tabId: number, message: unknown): Promise<T> {
     const CONTENT_SCRIPT_PATH = 'content-scripts/content.js';
-    try {
+    const POLL_INTERVAL_MS = 100;
+    const MAX_WAIT_MS = 2000;
+
+    async function trySend(): Promise<T> {
       return (await chrome.tabs.sendMessage(tabId, message)) as T;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      if (errorMessage.includes('Receiving end does not exist') && retries > 0) {
-        log.warn('内容脚本未响应，尝试重新注入', { tabId, error: errorMessage });
+    }
+
+    async function waitForContentScript(): Promise<void> {
+      const start = Date.now();
+      while (Date.now() - start < MAX_WAIT_MS) {
+        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
         try {
-          await chrome.scripting.executeScript({
-            target: { tabId },
-            files: [CONTENT_SCRIPT_PATH],
-          });
-          // 等待脚本初始化完成
-          await new Promise((resolve) => setTimeout(resolve, 300));
-          return sendToContentScript<T>(tabId, message, retries - 1);
-        } catch (injectErr) {
-          const injectError = injectErr instanceof Error ? injectErr.message : String(injectErr);
-          throw new Error(`内容脚本重新注入失败：${injectError}`, { cause: injectErr });
+          await chrome.tabs.sendMessage(tabId, { type: 'PING' });
+          return;
+        } catch (pollErr) {
+          const msg = pollErr instanceof Error ? pollErr.message : String(pollErr);
+          if (!msg.includes('Receiving end does not exist')) return;
         }
       }
-      throw new Error(errorMessage, { cause: err });
+    }
+
+    try {
+      return await trySend();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (!errorMessage.includes('Receiving end does not exist')) {
+        throw new Error(errorMessage, { cause: err });
+      }
+
+      log.warn('内容脚本未响应，尝试重新注入', { tabId, error: errorMessage });
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          files: [CONTENT_SCRIPT_PATH],
+        });
+      } catch (injectErr) {
+        const injectError = injectErr instanceof Error ? injectErr.message : String(injectErr);
+        throw new Error(`内容脚本重新注入失败：${injectError}`, { cause: injectErr });
+      }
+
+      await waitForContentScript();
+
+      try {
+        return await trySend();
+      } catch (retryErr) {
+        const retryError = retryErr instanceof Error ? retryErr.message : String(retryErr);
+        throw new Error(`内容脚本重新注入后仍无法通信：${retryError}`, { cause: retryErr });
+      }
     }
   }
 

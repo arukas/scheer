@@ -15,6 +15,7 @@ import type {
 } from '../schema';
 import { extractHandle } from '../platform';
 import { fetchJson } from '../fetch';
+import { formatCompareAtPrice } from '../price';
 
 const API_TIMEOUT_MS = 10000;
 
@@ -64,9 +65,10 @@ function convertTags(tags: unknown): string[] | undefined {
 }
 
 function convertPrice(value: unknown): string {
-  if (typeof value !== 'number') return String(value ?? '0');
+  const num = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(num)) return '0.00';
   // ShopLine 价格单位为最小货币单位，需除以 100
-  return (value / 100).toFixed(2);
+  return (num / 100).toFixed(2);
 }
 
 function convertImages(rawImages: unknown[], medias: RawObject[]): ProductImage[] {
@@ -154,19 +156,23 @@ function buildVariantOptions(v: RawObject, productOptions: ProductOption[]): Var
 
 function convertVariants(variants: RawObject[], productOptions: ProductOption[]): ProductVariant[] {
   if (!Array.isArray(variants)) return [];
-  return variants.map((v, idx) => ({
-    source_variant_id: v.id != null ? String(v.id) : undefined,
-    position: idx + 1,
-    title: String(v.title ?? ''),
-    price: convertPrice(v.price),
-    compare_at_price: v.compare_at_price != null ? convertPrice(v.compare_at_price) : undefined,
-    sku: toStringOrUndefined(v.sku),
-    barcode: toStringOrUndefined(v.barcode),
-    options: buildVariantOptions(v, productOptions),
-    grams: gramsFromWeight(v.weight, v.weight_unit),
-    weight: typeof v.weight === 'number' ? v.weight : null,
-    weight_unit: toStringOrUndefined(v.weight_unit),
-  }));
+
+  return variants.map((v, idx) => {
+    const price = convertPrice(v.price);
+    return {
+      source_variant_id: v.id != null ? String(v.id) : undefined,
+      position: idx + 1,
+      title: String(v.title ?? ''),
+      price,
+      compare_at_price: formatCompareAtPrice(v.compare_at_price, price),
+      sku: toStringOrUndefined(v.sku),
+      barcode: toStringOrUndefined(v.barcode),
+      options: buildVariantOptions(v, productOptions),
+      grams: gramsFromWeight(v.weight, v.weight_unit),
+      weight: typeof v.weight === 'number' ? v.weight : null,
+      weight_unit: toStringOrUndefined(v.weight_unit),
+    };
+  });
 }
 
 function convertProduct(raw: RawObject, url: string): Product {

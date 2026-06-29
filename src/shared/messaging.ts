@@ -8,6 +8,7 @@ import type { CreateProductSuccessResponse } from './schema';
 import type { PlatformKey } from './schema';
 
 export type MessageType =
+  | 'PING'
   | 'GET_PAGE_STATUS'
   | 'GET_PAGE_HTML'
   | 'GET_CONFIG'
@@ -21,6 +22,10 @@ export type MessageType =
 
 export interface BaseMessage {
   type: MessageType;
+}
+
+export interface PingMessage extends BaseMessage {
+  type: 'PING';
 }
 
 export interface GetPageStatusMessage extends BaseMessage {
@@ -67,6 +72,7 @@ export interface TestConfigMessage extends BaseMessage {
 }
 
 export type ScheerMessage =
+  | PingMessage
   | GetPageStatusMessage
   | GetPageHtmlMessage
   | GetConfigMessage
@@ -91,7 +97,20 @@ export function onMessage<T = unknown>(
     message: ScheerMessage,
     sender: chrome.runtime.MessageSender,
     sendResponse: (response?: T) => void
-  ) => void | boolean | Promise<T>
+  ) => void | boolean | Promise<T | void>
 ): void {
-  chrome.runtime.onMessage.addListener(callback);
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    const result = callback(message, sender, sendResponse);
+
+    // 当 handler 是异步函数时，必须返回 true 以保持消息通道开放，
+    // 否则 chrome.runtime.sendMessage 在 sendResponse 异步调用前就会关闭通道。
+    if (result instanceof Promise) {
+      result.catch((err) => {
+        console.error('[messaging] async message handler failed', err);
+      });
+      return true;
+    }
+
+    return result;
+  });
 }

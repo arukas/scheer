@@ -18,6 +18,7 @@ import type {
 import { extractHandle } from '../platform';
 import { fetchJson } from '../fetch';
 import { createLogger } from '../logger';
+import { formatPrice, formatCompareAtPrice } from '../price';
 
 const log = createLogger('shared/extractors/shoplazza');
 
@@ -186,22 +187,23 @@ function convertImages(rawImages: unknown[]): ProductImage[] {
 
 function convertVariants(variants: RawObject[], productOptions: ProductOption[]): ProductVariant[] {
   if (!Array.isArray(variants)) return [];
-  return variants.map((v, idx) => ({
-    source_variant_id: v.id != null ? String(v.id) : undefined,
-    position: idx + 1,
-    title: String(v.title ?? `Variant ${idx + 1}`),
-    price: (toNumberOrUndefined(v.price) ?? 0).toFixed(2),
-    compare_at_price:
-      v.compare_at_price != null
-        ? (toNumberOrUndefined(v.compare_at_price) ?? 0).toFixed(2)
-        : undefined,
-    sku: toStringOrUndefined(v.sku),
-    barcode: toStringOrUndefined(v.barcode),
-    options: buildVariantOptions(v, productOptions),
-    grams: gramsFromWeight(v.weight, v.weight_unit),
-    weight: toNumberOrUndefined(v.weight) ?? null,
-    weight_unit: toStringOrUndefined(v.weight_unit),
-  }));
+
+  return variants.map((v, idx) => {
+    const price = formatPrice(v.price);
+    return {
+      source_variant_id: v.id != null ? String(v.id) : undefined,
+      position: idx + 1,
+      title: String(v.title ?? `Variant ${idx + 1}`),
+      price,
+      compare_at_price: formatCompareAtPrice(v.compare_at_price, price),
+      sku: toStringOrUndefined(v.sku),
+      barcode: toStringOrUndefined(v.barcode),
+      options: buildVariantOptions(v, productOptions),
+      grams: gramsFromWeight(v.weight, v.weight_unit),
+      weight: toNumberOrUndefined(v.weight) ?? null,
+      weight_unit: toStringOrUndefined(v.weight_unit),
+    };
+  });
 }
 
 function convertProduct(raw: RawObject, url: string): Product {
@@ -211,15 +213,13 @@ function convertProduct(raw: RawObject, url: string): Product {
 
   // 无变体时兜底
   if (variants.length === 0) {
+    const price = formatPrice(raw.price);
     variants = [
       {
         position: 1,
         title: 'Default Title',
-        price: (toNumberOrUndefined(raw.price) ?? 0).toFixed(2),
-        compare_at_price:
-          raw.compare_at_price != null
-            ? (toNumberOrUndefined(raw.compare_at_price) ?? 0).toFixed(2)
-            : undefined,
+        price,
+        compare_at_price: formatCompareAtPrice(raw.compare_at_price, price),
         sku: toStringOrUndefined(raw.sku),
         barcode: toStringOrUndefined(raw.barcode),
         options: [{ name: 'Title', value: 'Default Title' }],
