@@ -132,6 +132,31 @@ export function resolveEndpoint(base: string, endpoint: string): string {
 }
 
 /**
+ * 根据 ServerConfig 构造请求头。
+ * - Authorization 头可通过 secret_header / secret_prefix 自定义
+ * - headers 字段可覆盖默认头
+ */
+export function buildRequestHeaders(
+  server: ServerConfig,
+  defaults: Record<string, string>
+): Headers {
+  const headers = new Headers(defaults);
+
+  const authHeaderName = server.secret_header?.trim() || 'Authorization';
+  const authHeaderPrefix = server.secret_prefix?.trim() ?? 'Bearer';
+  const authHeaderValue = authHeaderPrefix ? `${authHeaderPrefix} ${server.secret}` : server.secret;
+  headers.set(authHeaderName, authHeaderValue);
+
+  if (server.headers) {
+    for (const [key, value] of Object.entries(server.headers)) {
+      headers.set(key, value);
+    }
+  }
+
+  return headers;
+}
+
+/**
  * 向后端创建商品接口提交数据。
  */
 export async function submitCreateProduct(
@@ -150,10 +175,7 @@ export async function submitCreateProduct(
   const bodyString = JSON.stringify(payload);
   const requestOptions: RequestInit = {
     method: server.method ?? 'POST',
-    headers: {
-      Authorization: `Bearer ${server.secret}`,
-      'Content-Type': 'application/json',
-    },
+    headers: buildRequestHeaders(server, { 'Content-Type': 'application/json' }),
     body: bodyString,
     signal: controller.signal,
   };
@@ -253,10 +275,7 @@ export async function testBackendConnection(server: ServerConfig): Promise<unkno
 
   const requestOptions: RequestInit = {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${server.secret}`,
-      Accept: 'application/json',
-    },
+    headers: buildRequestHeaders(server, { Accept: 'application/json' }),
     signal: controller.signal,
   };
 

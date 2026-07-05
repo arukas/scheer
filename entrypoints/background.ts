@@ -1,7 +1,7 @@
 import { defineBackground } from 'wxt/sandbox';
 import { storage } from 'wxt/storage';
 import { DEFAULT_DEBUG_LOGS, DEFAULT_CONFIG } from '../src/shared/schema';
-import type { CreateProductPayload, HistoryItem } from '../src/shared/schema';
+import type { Config, CreateProductPayload, HistoryItem } from '../src/shared/schema';
 import {
   getConfig,
   setConfig,
@@ -139,12 +139,17 @@ export default defineBackground(() => {
           }
 
           const payload = extractResponse.payload;
-          const config = await getConfig();
+          const storedConfig = await getConfig();
+          const injectedConfig = await getInjectedConfig(tab.id);
+          const config = mergeWithInjectedConfig(storedConfig, injectedConfig);
           if (!config.server.secret) {
             throw new Error('后端密钥未配置');
           }
 
-          log.info('向后端提交创建商品', { url: payload.source_url });
+          log.info('向后端提交创建商品', {
+            url: payload.source_url,
+            source: injectedConfig ? 'injected' : 'storage',
+          });
           const result = await submitCreateProduct(payload, config.server);
 
           await recordHistory({
@@ -183,13 +188,22 @@ export default defineBackground(() => {
 
       case 'TEST_CONFIG': {
         try {
-          const { config } = (
+          const { config: baseConfig } = (
             message as { payload: { config: import('../src/shared/schema').Config } }
           ).payload;
-          if (!config.server.secret) {
+
+          let mergedConfig = baseConfig;
+          const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (activeTab?.id) {
+            const injectedConfig = await getInjectedConfig(activeTab.id);
+            mergedConfig = mergeWithInjectedConfig(baseConfig, injectedConfig);
+            log.debug('TEST_CONFIG 合并注入配置', { hasInjected: !!injectedConfig });
+          }
+
+          if (!mergedConfig.server.secret) {
             throw new Error('后端密钥未配置');
           }
-          const data = await testBackendConnection(config.server);
+          const data = await testBackendConnection(mergedConfig.server);
           sendResponse({ success: true, data });
         } catch (err) {
           const error = err instanceof Error ? err.message : String(err);
@@ -303,6 +317,36 @@ export default defineBackground(() => {
     // 3. 最后只能按 URL 规则兜底
     const status = await getPageStatus(url);
     return { tab, status, source: 'url' };
+  }
+
+  async function getInjectedConfig(tabId: number): Promise<Partial<Config> | null> {
+    try {
+      const response = await sendToContentScript<{ config: Partial<Config> | null }>(tabId, {
+        type: 'GET_INJECTED_CONFIG',
+      });
+      return response?.config ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  function mergeWithInjectedConfig(stored: Config, injected: Partial<Config> | null): Config {
+    if (!injected) return stored;
+
+    return {
+      ...stored,
+      ...injected,
+      server: {
+        ...stored.server,
+        ...injected.server,
+        headers: {
+          ...stored.server.headers,
+          ...injected.server?.headers,
+        },
+      },
+      crawl: { ...stored.crawl, ...injected.crawl },
+      debug: { ...stored.debug, ...injected.debug },
+    };
   }
 
   async function recordHistory(

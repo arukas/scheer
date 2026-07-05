@@ -29,3 +29,7 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Environment variables
+.env
+.env.local

@@ -26,6 +26,10 @@ body {
 }
 
 .options-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
   margin-bottom: var(--space-xl);
   padding-bottom: var(--space-lg);
   border-bottom: 1px solid var(--color-border);
@@ -78,6 +82,12 @@ body {
 .options-input:focus {
   outline: none;
   border-color: var(--color-primary);
+}
+
+.options-input.textarea {
+  min-height: 160px;
+  font-family: var(--font-mono, monospace);
+  resize: vertical;
 }
 
 .options-hint {

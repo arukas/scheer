@@ -135,6 +135,114 @@ pnpm zip
 
 产物位于 `dist/chrome-mv3/`，`pnpm zip` 会生成 `dist/scheer-0.1.0-chrome.zip`，可直接分发给客户。生产构建会禁用 HMR 并进行代码压缩。
 
+## 上传产物到 S3 / OSS
+
+扩展支持构建或打包后自动上传到 S3 兼容的对象存储（阿里云 OSS、AWS S3、MinIO 等）。
+
+### 配置凭证
+
+复制模板并填写真实值：
+
+```bash
+cp .env.example .env.local
+```
+
+关键变量：
+
+| 变量                   | 说明                                 | 示例                                   |
+| ---------------------- | ------------------------------------ | -------------------------------------- |
+| `S3_ENDPOINT`          | 对象存储 endpoint                    | `https://oss-cn-hangzhou.aliyuncs.com` |
+| `S3_REGION`            | 区域                                 | `cn-hangzhou`                          |
+| `S3_BUCKET`            | Bucket 名称                          | `your-bucket`                          |
+| `S3_ACCESS_KEY_ID`     | Access Key                           | -                                      |
+| `S3_SECRET_ACCESS_KEY` | Secret Key                           | -                                      |
+| `S3_PATH_PREFIX`       | 上传路径前缀，默认 `scheer`          | `scheer`                               |
+| `S3_UPLOAD_DIR`        | 是否同时上传 `dist/chrome-mv3/` 目录 | `false`                                |
+| `S3_FORCE_PATH_STYLE`  | 是否使用 path-style（MinIO 需要）    | `false`                                |
+
+### 执行上传
+
+```bash
+# 先 zip 再上传
+pnpm zip:upload
+
+# 完整流程：build + zip + upload
+pnpm build:upload
+
+# 仅上传（dist 下已有 zip）
+pnpm upload
+```
+
+上传后的 key 规则：
+
+```
+scheer/<version>/scheer-<version>-<git-hash>-<buildtime>-chrome.zip
+```
+
+若开启 `S3_UPLOAD_DIR=true`，还会上传：
+
+```
+scheer/<version>/chrome-mv3/...
+```
+
+### MinIO 私有部署
+
+MinIO 默认使用 path-style，需设置：
+
+```bash
+S3_FORCE_PATH_STYLE=true
+S3_ENDPOINT=http://localhost:9000
+```
+
+### 构建后自动上传并返回访问链接
+
+设置 `S3_AUTO_UPLOAD=true` 后，执行 `pnpm build` 会在构建完成后自动 zip 并上传：
+
+```bash
+S3_AUTO_UPLOAD=true pnpm build
+```
+
+如需在构建日志中打印公开访问链接，同时配置 `S3_PUBLIC_URL`：
+
+```bash
+S3_AUTO_UPLOAD=true \
+S3_PUBLIC_URL=https://cdn.example.com \
+pnpm build
+```
+
+控制台输出示例：
+
+```text
+构建并上传完成：
+  key: scheer/0.1.0/scheer-0.1.0-57d473b-20260705-120136-chrome.zip
+  url: https://cdn.example.com/scheer/0.1.0/scheer-0.1.0-57d473b-20260705-120136-chrome.zip
+```
+
+`S3_PUBLIC_URL` 常见填写方式：
+
+- 阿里云 OSS 自定义域名：`https://cdn.example.com`
+- Cloudflare R2 默认公共 URL：`https://pub-<hash>.r2.dev`
+- AWS S3 virtual-hosted：`https://your-bucket.s3.your-region.amazonaws.com`
+- MinIO 自定义域名：`https://minio.example.com`
+
+不配置 `S3_PUBLIC_URL` 时，脚本仍会正常上传，但只打印 object key。
+
+## 构建时环境变量
+
+### `VITE_SHOW_DEBUG_SETTINGS`
+
+默认情况下，options 页不展示「Debug 日志」设置区，避免普通用户接触到调试开关。
+
+如需在构建时启用该区块：
+
+```bash
+# 命令行传入
+VITE_SHOW_DEBUG_SETTINGS=true pnpm build
+
+# 或在项目根目录创建 .env.local
+# VITE_SHOW_DEBUG_SETTINGS=true
+```
+
 ## 核心模块
 
 `src/shared/` 已包含以下基础模块：

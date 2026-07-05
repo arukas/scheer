@@ -11,6 +11,7 @@ export type MessageType =
   | 'PING'
   | 'GET_PAGE_STATUS'
   | 'GET_PAGE_HTML'
+  | 'GET_INJECTED_CONFIG'
   | 'GET_CONFIG'
   | 'SET_CONFIG'
   | 'GET_DEBUG_LOGS'
@@ -34,6 +35,10 @@ export interface GetPageStatusMessage extends BaseMessage {
 
 export interface GetPageHtmlMessage extends BaseMessage {
   type: 'GET_PAGE_HTML';
+}
+
+export interface GetInjectedConfigMessage extends BaseMessage {
+  type: 'GET_INJECTED_CONFIG';
 }
 
 export interface GetConfigMessage extends BaseMessage {
@@ -75,6 +80,7 @@ export type ScheerMessage =
   | PingMessage
   | GetPageStatusMessage
   | GetPageHtmlMessage
+  | GetInjectedConfigMessage
   | GetConfigMessage
   | SetConfigMessage
   | GetDebugLogsMessage

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isAbsoluteUrl, resolveEndpoint, buildCurl } from '@/shared/api';
+import { isAbsoluteUrl, resolveEndpoint, buildCurl, buildRequestHeaders } from '@/shared/api';
+import type { ServerConfig } from '@/shared/schema';
 
 vi.mock('@/shared/storage', () => ({
   getDebugLogs: () =>
@@ -108,5 +109,67 @@ describe('buildCurl', () => {
     });
     expect(curl).toContain("o'\\''clock");
     expect(curl).toContain("it'\\''s a test");
+  });
+});
+
+describe('buildRequestHeaders', () => {
+  const baseServer: ServerConfig = {
+    base: 'https://api.example.com',
+    create_product_endpoint: '/scheer/products',
+    current_user_endpoint: '/scheer/me',
+    secret: 'sk-123',
+  };
+
+  it('uses default Authorization Bearer header', () => {
+    const headers = buildRequestHeaders(baseServer, { 'Content-Type': 'application/json' });
+    expect(headers.get('Authorization')).toBe('Bearer sk-123');
+    expect(headers.get('Content-Type')).toBe('application/json');
+  });
+
+  it('adds custom headers from server.headers', () => {
+    const headers = buildRequestHeaders(
+      { ...baseServer, headers: { 'X-Project-Id': 'abc', 'X-Api-Key': 'pk-xyz' } },
+      { 'Content-Type': 'application/json' }
+    );
+    expect(headers.get('X-Project-Id')).toBe('abc');
+    expect(headers.get('X-Api-Key')).toBe('pk-xyz');
+    expect(headers.get('Authorization')).toBe('Bearer sk-123');
+  });
+
+  it('allows custom headers to override default headers', () => {
+    const headers = buildRequestHeaders(
+      { ...baseServer, headers: { 'Content-Type': 'text/plain' } },
+      { 'Content-Type': 'application/json' }
+    );
+    expect(headers.get('Content-Type')).toBe('text/plain');
+  });
+
+  it('supports custom secret_header and secret_prefix', () => {
+    const headers = buildRequestHeaders(
+      { ...baseServer, secret_header: 'X-Api-Key', secret_prefix: 'ApiKey' },
+      { Accept: 'application/json' }
+    );
+    expect(headers.get('X-Api-Key')).toBe('ApiKey sk-123');
+    expect(headers.has('Authorization')).toBe(false);
+  });
+
+  it('falls back to Authorization when secret_header is empty', () => {
+    const headers = buildRequestHeaders(
+      { ...baseServer, secret_header: '   ', secret_prefix: '' },
+      { 'Content-Type': 'application/json' }
+    );
+    expect(headers.get('Authorization')).toBe('sk-123');
+  });
+
+  it('redacts custom sensitive headers in curl', () => {
+    const curl = buildCurl('https://api.example.com/scheer/products', {
+      method: 'POST',
+      headers: buildRequestHeaders(
+        { ...baseServer, headers: { 'X-Api-Key': 'sk-1234567890' } },
+        { 'Content-Type': 'application/json' }
+      ),
+    });
+    expect(curl).toContain("-H 'x-api-key: <redacted>'");
+    expect(curl).not.toContain('sk-1234567890');
   });
 });

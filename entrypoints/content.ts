@@ -3,6 +3,28 @@ import { createLogger } from '../src/shared/logger';
 import { getPageStatus } from '../src/shared/platform';
 import { onMessage } from '../src/shared/messaging';
 import { extractProduct } from '../src/shared/extract';
+import type { Config } from '../src/shared/schema';
+
+const INJECTED_CONFIG_ID = 'scheer-extension-config';
+
+/**
+ * 从页面注入的 <script type="application/json" id="scheer-extension-config"> 读取配置。
+ * 读取失败时返回 null，避免影响主流程。
+ */
+function readInjectedConfig(): Partial<Config> | null {
+  const el = document.getElementById(INJECTED_CONFIG_ID);
+  if (!el) return null;
+  if ((el as HTMLScriptElement).type !== 'application/json') return null;
+
+  const raw = el.textContent?.trim() ?? '';
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as Partial<Config>;
+  } catch {
+    return null;
+  }
+}
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -40,6 +62,19 @@ export default defineContentScript({
             canExtract: false,
             reason: `探测失败：${error}`,
           });
+        }
+        return;
+      }
+
+      if (message.type === 'GET_INJECTED_CONFIG') {
+        try {
+          const injected = readInjectedConfig();
+          log.debug('响应 GET_INJECTED_CONFIG', { hasConfig: !!injected });
+          sendResponse({ config: injected });
+        } catch (err) {
+          const error = err instanceof Error ? err.message : String(err);
+          log.error('GET_INJECTED_CONFIG 失败', { error });
+          sendResponse({ config: null });
         }
         return;
       }
@@ -88,7 +123,8 @@ export default defineContentScript({
 
     try {
       const status = await getPageStatus(location.href, document.documentElement.outerHTML);
-      log.debug('Content script 注入', { url: location.href });
+      const injectedConfig = readInjectedConfig();
+      log.debug('Content script 注入', { url: location.href, hasInjectedConfig: !!injectedConfig });
       log.info('页面状态', status);
     } catch (err) {
       log.error('Content script 初始化探测失败', {

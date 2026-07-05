@@ -22,10 +22,13 @@ const configItem = storage.defineItem<Config>('local:config', {
 
 export async function getConfig(): Promise<Config> {
   const stored = await configItem.getValue();
-  return mergeConfig(stored);
+  return mergeWithDefaultConfig(stored);
 }
 
-function mergeConfig(stored: Config): Config {
+/**
+ * 把存储的配置与默认值做兜底合并，确保嵌套字段不缺省。
+ */
+export function mergeWithDefaultConfig(stored: Config): Config {
   return {
     ...DEFAULT_CONFIG,
     ...stored,
@@ -33,6 +36,34 @@ function mergeConfig(stored: Config): Config {
     crawl: { ...DEFAULT_CONFIG.crawl, ...stored.crawl },
     debug: { ...DEFAULT_CONFIG.debug, ...stored.debug },
   };
+}
+
+function mergeOptionalNested<T extends object>(
+  current: T | undefined,
+  imported: Partial<T> | undefined
+): T | undefined {
+  if (!imported) return current;
+  return { ...(current ?? ({} as T)), ...imported } as T;
+}
+
+/**
+ * 把粘贴导入的配置合并到当前配置之上。
+ * imported 提供的字段覆盖 current，未提供的字段保持 current 的值。
+ * 最后用默认值兜底，防止导入的嵌套对象缺字段。
+ */
+export function mergeImportedConfig(current: Config, imported: Partial<Config>): Config {
+  const merged: Config = {
+    ...current,
+    ...imported,
+    server: { ...current.server, ...imported.server },
+    crawl: { ...current.crawl, ...imported.crawl },
+    debug: { ...current.debug, ...imported.debug },
+    platforms: imported.platforms ?? current.platforms,
+    retry: mergeOptionalNested(current.retry, imported.retry),
+    ui: mergeOptionalNested(current.ui, imported.ui),
+    storage: mergeOptionalNested(current.storage, imported.storage),
+  };
+  return mergeWithDefaultConfig(merged);
 }
 
 export async function setConfig(config: Config): Promise<void> {

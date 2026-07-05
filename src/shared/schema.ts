@@ -129,6 +129,12 @@ export interface ServerConfig {
   current_user_endpoint: string;
   method?: 'POST';
   secret: string;
+  /** secret 投递的 header 名，默认 Authorization */
+  secret_header?: string;
+  /** secret 值前缀，默认 Bearer */
+  secret_prefix?: string;
+  /** 自定义请求头；相同 key 会覆盖默认头 */
+  headers?: Record<string, string>;
   timeout_ms?: number;
 }
 

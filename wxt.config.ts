@@ -40,7 +40,7 @@ export default defineConfig({
     version: baseVersion,
     version_name: versionName,
     permissions: ['storage', 'activeTab', 'scripting'],
-    host_permissions: ['https://*/'],
+    optional_host_permissions: ['https://*/*'],
   },
   runner: {
     // 开发时启动 Chromium，默认开启扩展页

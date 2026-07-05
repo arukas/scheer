@@ -7,9 +7,12 @@
   "scripts": {
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
-    "build": "wxt build",
+    "build": "tsx scripts/build.ts",
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
+    "upload": "tsx scripts/upload.ts",
+    "build:upload": "wxt build && wxt zip && npm run upload",
+    "zip:upload": "wxt zip && npm run upload",
     "compile": "tsc --noEmit",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
@@ -26,6 +29,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1079.0",
     "@eslint/js": "^10.0.1",
     "@types/chrome": "^0.0.268",
     "@types/react": "^18.3.3",

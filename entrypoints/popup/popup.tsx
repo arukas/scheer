@@ -13,6 +13,7 @@ function Popup() {
   const [status, setStatus] = useState<PageStatus | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
   const [logs, setLogs] = useState<DebugLogs | null>(null);
+  const [hasHostPermission, setHasHostPermission] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<CreateProductResponse | null>(null);
   const [exportingDiagnostics, setExportingDiagnostics] = useState(false);
@@ -36,11 +37,35 @@ function Popup() {
     };
   }, []);
 
+  async function checkHostPermission(): Promise<boolean> {
+    try {
+      return await chrome.permissions.contains({ origins: ['https://*/*'] });
+    } catch {
+      return false;
+    }
+  }
+
+  async function requestHostPermission() {
+    try {
+      const granted = await chrome.permissions.request({ origins: ['https://*/*'] });
+      if (granted) {
+        setHasHostPermission(true);
+        await refresh();
+      }
+    } catch (err) {
+      console.error('申请权限失败', err);
+    }
+  }
+
   async function refresh() {
     try {
-      const pageStatus = await sendMessage<PageStatus>({ type: 'GET_PAGE_STATUS' });
-      const cfg = await sendMessage<Config>({ type: 'GET_CONFIG' });
-      const l = await sendMessage<DebugLogs>({ type: 'GET_DEBUG_LOGS' });
+      const [permission, pageStatus, cfg, l] = await Promise.all([
+        checkHostPermission(),
+        sendMessage<PageStatus>({ type: 'GET_PAGE_STATUS' }),
+        sendMessage<Config>({ type: 'GET_CONFIG' }),
+        sendMessage<DebugLogs>({ type: 'GET_DEBUG_LOGS' }),
+      ]);
+      setHasHostPermission(permission);
       setStatus(pageStatus);
       setConfig(cfg);
       setLogs(l);
@@ -50,7 +75,13 @@ function Popup() {
   }
 
   async function openOptions() {
-    await chrome.runtime.openOptionsPage();
+    await chrome.windows.create({
+      url: chrome.runtime.getURL('/options.html'),
+      type: 'popup',
+      width: 720,
+      height: 760,
+      focused: true,
+    });
   }
 
   async function exportLogs() {
@@ -160,15 +191,20 @@ function Popup() {
     config.server.secret
   );
 
-  const canCreate = configReady && status?.canExtract;
+  const canCreate = configReady && hasHostPermission && status?.canExtract;
 
   return (
     <div className="popup">
       <header className="popup-header">
         <h1 className="popup-title">Scheer</h1>
-        <span className={`popup-badge ${configReady ? 'ready' : 'not-ready'}`}>
-          {configReady ? '已配置' : '未配置'}
-        </span>
+        <div className="popup-header-actions">
+          <span className={`popup-badge ${configReady ? 'ready' : 'not-ready'}`}>
+            {configReady ? '已配置' : '未配置'}
+          </span>
+          <button className="popup-btn icon" onClick={openOptions} title="打开配置">
+            ⚙️
+          </button>
+        </div>
       </header>
 
       <section className="popup-section">
@@ -193,6 +229,14 @@ function Popup() {
         ) : (
           <div className="popup-loading">加载中…</div>
         )}
+        {hasHostPermission === false && (
+          <div className="popup-permission">
+            <p className="popup-permission-text">需要授权访问网站数据，才能识别商品页并采集。</p>
+            <button className="popup-btn full-width" onClick={requestHostPermission}>
+              授权访问所有网站
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="popup-section">
@@ -206,14 +250,19 @@ function Popup() {
         {!configReady && (
           <p className="popup-hint">请先在 Options 中配置后端域名、接口地址和密钥。</p>
         )}
-        {configReady && !status?.canExtract && <p className="popup-hint">当前页面暂不支持采集。</p>}
+        {configReady && !hasHostPermission && (
+          <p className="popup-hint">请点击上方「授权访问所有网站」按钮授予页面访问权限。</p>
+        )}
+        {configReady && hasHostPermission && !status?.canExtract && (
+          <p className="popup-hint">当前页面暂不支持采集。</p>
+        )}
         {submitResult && (
           <div className={`popup-result ${submitResult.success ? 'success' : 'error'}`}>
             {submitResult.success ? (
               <>
                 <p>创建成功 ✅</p>
                 <p className="popup-result-detail">商品 ID：{submitResult.data.product_id}</p>
-                <p className="popup-result-detail">用户：{submitResult.data.user.name}</p>
+                <p className="popup-result-detail">日志 ID：{submitResult.data.log_id}</p>
               </>
             ) : (
               <p>创建失败：{submitResult.error}</p>
