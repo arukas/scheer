@@ -13,6 +13,10 @@
  * - S3_PUBLIC_URL: 可选，用于生成公开访问链接，如 https://cdn.example.com
  */
 
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+dotenv.config();
+
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { createReadStream, readdirSync, statSync } from 'node:fs';
 import { join, relative, extname } from 'node:path';

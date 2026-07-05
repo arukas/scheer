@@ -6,6 +6,10 @@
  * 最后打印公开访问链接（需配置 S3_PUBLIC_URL）。
  */
 
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+dotenv.config();
+
 import { execSync } from 'node:child_process';
 import { uploadArtifacts } from './upload.js';
 
