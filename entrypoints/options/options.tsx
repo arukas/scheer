@@ -77,19 +77,35 @@ function Options() {
     }
   }
 
+  function decodeBase64(value: string): string {
+    const binary = atob(value);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  }
+
   async function importConfig() {
     if (!config) return;
-    if (!importText.trim()) {
-      setStatus('请粘贴配置 JSON');
+    const raw = importText.trim();
+    if (!raw) {
+      setStatus('请粘贴配置内容');
       return;
     }
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(importText);
+      parsed = JSON.parse(raw);
     } catch {
-      setStatus('导入失败：JSON 格式不正确');
-      return;
+      try {
+        const cleaned = raw.replace(/\s/g, '');
+        const decoded = decodeBase64(cleaned);
+        parsed = JSON.parse(decoded);
+      } catch {
+        setStatus('导入失败：请输入合法 JSON 或 Base64 编码的 JSON');
+        return;
+      }
     }
 
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
@@ -127,6 +143,21 @@ function Options() {
     }
   }
 
+  async function toggleDebugEnabled() {
+    if (!config) return;
+    const nextConfig: Config = {
+      ...config,
+      debug: { ...config.debug, enabled: !config.debug.enabled },
+    };
+    try {
+      await sendMessage({ type: 'SET_CONFIG', payload: { config: nextConfig } });
+      await load();
+      setStatus(`Debug 模式已${nextConfig.debug.enabled ? '开启' : '关闭'}`);
+    } catch (err) {
+      setStatus(`切换 Debug 模式失败：${(err as Error).message}`);
+    }
+  }
+
   async function clearLogs() {
     await sendMessage({ type: 'CLEAR_DEBUG_LOGS' });
     await load();
@@ -158,9 +189,14 @@ function Options() {
     <div className="options">
       <header className="options-header">
         <h1 className="options-title">Scheer 配置</h1>
-        <button className="options-btn secondary" onClick={openExtensionManagement}>
-          扩展管理
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+          <button className="options-btn secondary" onClick={toggleDebugEnabled}>
+            {config.debug.enabled ? '关闭 Debug 模式' : '开启 Debug 模式'}
+          </button>
+          <button className="options-btn secondary" onClick={openExtensionManagement}>
+            扩展管理
+          </button>
+        </div>
       </header>
 
       <section className="options-section">
@@ -253,7 +289,7 @@ function Options() {
         </div>
       </section>
 
-      {import.meta.env.VITE_SHOW_DEBUG_SETTINGS === 'true' && (
+      {config.debug.enabled && (
         <section className="options-section">
           <h2 className="options-section-title">Debug 日志</h2>
           <div className="options-row">
@@ -333,25 +369,25 @@ function Options() {
         {!showImport ? (
           <div className="options-actions">
             <button className="options-btn secondary" onClick={() => setShowImport(true)}>
-              通过 JSON 导入配置
+              导入配置
             </button>
           </div>
         ) : (
           <>
             <div className="options-field">
               <label className="options-label" htmlFor="import-config">
-                粘贴配置 JSON
+                粘贴配置
               </label>
               <textarea
                 id="import-config"
                 className="options-input textarea"
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
-                placeholder='{ "server": { "base": "https://api.example.com", "secret": "sk-xxx" } }'
+                placeholder='{ "server": { "base": "https://api.example.com", "secret": "sk-xxx" } } 或 Base64 编码的同等 JSON'
                 rows={8}
               />
               <p className="options-hint">
-                支持完整配置或部分配置导入，未提供的字段会保持当前值。必须是合法 JSON 对象。
+                支持直接粘贴 JSON，或粘贴 Base64 编码的 JSON。未提供的字段会保持当前值。
               </p>
             </div>
             <div className="options-actions">

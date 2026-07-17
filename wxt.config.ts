@@ -35,8 +35,8 @@ export default defineConfig({
   extensionApi: 'chrome',
   outDir: 'dist',
   manifest: {
-    name: 'Scheer',
-    description: '在浏览商品页时一键采集商品信息并推送到自有后端服务',
+    name: 'Scheer Product Assistant',
+    description: '在用户主动打开商品页时，整理当前页面可见商品信息，并可发送到用户配置的自有后端。',
     version: baseVersion,
     version_name: versionName,
     permissions: ['storage', 'activeTab', 'scripting'],

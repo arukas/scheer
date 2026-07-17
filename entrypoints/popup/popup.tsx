@@ -1,22 +1,18 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import JSZip from 'jszip';
 import { sendMessage } from '../../src/shared/messaging';
 import type { CreateProductResponse } from '../../src/shared/messaging';
-import type { Config, DebugLogs } from '../../src/shared/schema';
+import type { Config } from '../../src/shared/schema';
 import type { PageStatus } from '../../src/shared/platform';
 import { resolveEndpoint } from '../../src/shared/api';
-import { redactSensitive } from '../../src/shared/logger';
 import './style.css';
 
 function Popup() {
   const [status, setStatus] = useState<PageStatus | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
-  const [logs, setLogs] = useState<DebugLogs | null>(null);
   const [hasHostPermission, setHasHostPermission] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<CreateProductResponse | null>(null);
-  const [exportingDiagnostics, setExportingDiagnostics] = useState(false);
 
   useEffect(() => {
     refresh();
@@ -59,16 +55,14 @@ function Popup() {
 
   async function refresh() {
     try {
-      const [permission, pageStatus, cfg, l] = await Promise.all([
+      const [permission, pageStatus, cfg] = await Promise.all([
         checkHostPermission(),
         sendMessage<PageStatus>({ type: 'GET_PAGE_STATUS' }),
         sendMessage<Config>({ type: 'GET_CONFIG' }),
-        sendMessage<DebugLogs>({ type: 'GET_DEBUG_LOGS' }),
       ]);
       setHasHostPermission(permission);
       setStatus(pageStatus);
       setConfig(cfg);
-      setLogs(l);
     } catch (err) {
       console.error('Popup 刷新失败', err);
     }
@@ -84,18 +78,6 @@ function Popup() {
     });
   }
 
-  async function exportLogs() {
-    if (!logs) return;
-    const text = await sendMessage<string>({ type: 'EXPORT_DEBUG_LOGS' });
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `scheer-debug-logs-${new Date().toISOString()}.log`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   async function createProduct() {
     if (!configReady || !status?.canExtract) return;
     setSubmitting(true);
@@ -107,80 +89,6 @@ function Popup() {
       setSubmitResult({ success: false, error: err instanceof Error ? err.message : String(err) });
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function exportDiagnostics() {
-    if (!config || !status || !logs) return;
-    setExportingDiagnostics(true);
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      const tabId = tab?.id;
-
-      let pageHtml: unknown = null;
-      let productPayload: unknown = null;
-
-      if (tabId) {
-        try {
-          pageHtml = await chrome.tabs.sendMessage(tabId, { type: 'GET_PAGE_HTML' });
-        } catch (err) {
-          pageHtml = { error: err instanceof Error ? err.message : String(err) };
-        }
-
-        if (status.platform) {
-          try {
-            productPayload = await chrome.tabs.sendMessage(tabId, {
-              type: 'EXTRACT_PRODUCT',
-              payload: { platform: status.platform },
-            });
-          } catch (err) {
-            productPayload = {
-              success: false,
-              error: err instanceof Error ? err.message : String(err),
-            };
-          }
-        }
-      }
-
-      const manifest = chrome.runtime.getManifest();
-      const diagnostics = {
-        exported_at: new Date().toISOString(),
-        extension_version: manifest.version_name ?? manifest.version,
-        url: tab?.url ?? status.url,
-        page_status: status,
-        page_html: pageHtml,
-        product_payload: productPayload,
-        config: redactSensitive(JSON.parse(JSON.stringify(config)) as Record<string, unknown>),
-        debug_logs: logs,
-      };
-
-      const zip = new JSZip();
-      zip.file('diagnostics.json', JSON.stringify(diagnostics, null, 2));
-      if (
-        pageHtml &&
-        typeof pageHtml === 'object' &&
-        pageHtml !== null &&
-        'html' in pageHtml &&
-        typeof (pageHtml as Record<string, unknown>).html === 'string'
-      ) {
-        zip.file('page.html', (pageHtml as Record<string, string>).html);
-      }
-
-      const blob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `scheer-diagnostic-${new Date().toISOString()}.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('导出诊断包失败', err);
-      setSubmitResult({
-        success: false,
-        error: `导出诊断包失败：${err instanceof Error ? err.message : String(err)}`,
-      });
-    } finally {
-      setExportingDiagnostics(false);
     }
   }
 
@@ -270,39 +178,6 @@ function Popup() {
           </div>
         )}
       </section>
-
-      <section className="popup-section">
-        <h2 className="popup-section-title">调试</h2>
-        <div className="popup-row">
-          <span className="popup-label">Debug 模式</span>
-          <span className="popup-value">{logs?.enabled ? '开启' : '关闭'}</span>
-        </div>
-        <div className="popup-row">
-          <span className="popup-label">本地日志</span>
-          <span className="popup-value">
-            {logs?.persist ? `${logs.entries.length} 条` : '未持久化'}
-          </span>
-        </div>
-        {logs?.enabled && (
-          <button
-            className="popup-btn secondary full-width"
-            onClick={exportDiagnostics}
-            disabled={exportingDiagnostics}
-            style={{ marginTop: 'var(--space-md)' }}
-          >
-            {exportingDiagnostics ? '打包中…' : '导出诊断包'}
-          </button>
-        )}
-      </section>
-
-      <footer className="popup-footer">
-        <button className="popup-btn secondary" onClick={openOptions}>
-          打开 Options
-        </button>
-        <button className="popup-btn" onClick={exportLogs} disabled={!logs || !logs.persist}>
-          导出日志
-        </button>
-      </footer>
     </div>
   );
 }
