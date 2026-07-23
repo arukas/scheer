@@ -1,24 +1,25 @@
 # 平台支持状态矩阵
 
-本文档汇总 7 个目标平台的数据入口、实现状态与已知限制，供开发者快速查阅。
+本文档汇总 8 个目标平台的数据入口、实现状态与已知限制，供开发者快速查阅。
 
 > 状态说明：
 >
-> - `已设计`：方案已在 `docs/design.md` §2 / §7 中定义。
-> - `待实现`：代码目录尚未创建。
+> - `已实现`：采集器与回归测试均已落地。
+> - `仅识别`：可以识别平台，但采集器尚未实现。
 > - `已验证`：已在真实商品页手动验证通过。
 
 ## 平台总览
 
-| 平台        | 类型      | 数据入口                                | MAIN world | 状态            | 备注                                  |
-| ----------- | --------- | --------------------------------------- | ---------- | --------------- | ------------------------------------- |
-| Shopify     | SaaS 建站 | `/products/<handle>.json`               | 否         | 已设计 / 待实现 | 结构最规整，优先实现                  |
-| NewShop     | SaaS 建站 | URL 改写 `/api/store/products/<handle>` | 否         | 已设计 / 待实现 | PHP 另有服务端 fast path，扩展不实现  |
-| ShopBase    | SaaS 建站 | `window.__INITIAL_STATE__`              | 是         | 已设计 / 待实现 | 需 MAIN world 桥                      |
-| ShopLine    | SaaS 建站 | `window.__PRELOAD_STATE__.product`      | 是         | 已设计 / 待实现 | 详情优先 DOM `.mce-content-body`      |
-| XShopPy     | SaaS 建站 | POST `/buyer/product/pop-detail`        | 否         | 已设计 / 待实现 | 需先读 `input.product-id`             |
-| ShopLazza   | SaaS 建站 | `/api/products/{id}` + DOM 详情         | 否         | 已设计 / 待实现 | API 图片补 `https:`，HTML 清洗懒加载  |
-| TikTok Shop | 社交电商  | `<script id="__MODERN_ROUTER_DATA__">`  | 否         | 已设计 / 待实现 | 区域限制 / captcha 需给出明确失败原因 |
+| 平台        | 类型      | 数据入口                                 | MAIN world | 状态   | 备注                                |
+| ----------- | --------- | ---------------------------------------- | ---------- | ------ | ----------------------------------- |
+| Shopify     | SaaS 建站 | `/products/<handle>.json`                | 否         | 已实现 | 结构化接口采集                      |
+| NewShop     | SaaS 建站 | URL 改写 `/api/store/products/<handle>`  | 否         | 已实现 | 结构化接口采集                      |
+| ShopBase    | SaaS 建站 | `window.__INITIAL_STATE__`               | 是         | 已实现 | 读取页面注水数据                    |
+| ShopLine    | SaaS 建站 | `window.__PRELOAD_STATE__.product`       | 是         | 已实现 | 失败时回退 JSON-LD                  |
+| XShopPy     | SaaS 建站 | POST `/buyer/product/pop-detail`         | 否         | 仅识别 | 采集器待实现                        |
+| ShopLazza   | SaaS 建站 | `/api/products/{id}` + DOM 详情          | 否         | 已实现 | API + DOM 混合采集                  |
+| TikTok Shop | 社交电商  | `<script id="__MODERN_ROUTER_DATA__">`   | 否         | 已实现 | 区域限制 / captcha 会明确报错       |
+| Amazon      | 综合电商  | `twister-js-init-dpx-data` + 固定 DOM ID | 否         | 已实现 | 规则详见 `docs/amazon-extractor.md` |
 
 ## 平台代码对照
 
@@ -33,6 +34,7 @@
 | XShopPy     | `xshoppy`    | `xshoppy`            |
 | ShopLazza   | `shoplazza`  | `shoplazza`          |
 | TikTok Shop | `tiktok`     | `tiktok`             |
+| Amazon      | `amazon`     | `amazon`             |
 
 > 发送层如需兼容旧 PHP，可将 `newshop` 转为 `wshop`。
 
@@ -98,6 +100,17 @@
   - 进入采集前去掉 URL query
   - `error_code === "23002002"` 或区域不可访问时按失败处理
   - `handle` 优先从 URL 取，纯数字时用 title slug
+
+### Amazon
+
+- **入口**：内联 script `P.register('twister-js-init-dpx-data', ...)`（变体矩阵）+ 固定 DOM ID（`#productTitle` / `#corePrice_feature_div` / `#bylineInfo` / `colorImages`）。
+- **读取方式**：content script 直接读已渲染 DOM，无网络请求。
+- **注意**：
+  - twister 对象含 JS 字符串拼接，按键名定位 + 平衡括号扫描提取，不能整体 `JSON.parse`
+  - 全部变体价格 = 当前页价格；`source_product_id` = parentAsin
+  - 价格解析内置 `parseAmazonPrice`，兼容国际站逗号小数与货币代码
+  - 书籍/媒体类目（`#tmmSwatches`）v1 按单变体处理
+  - 详细规则与边界情况见 [`docs/amazon-extractor.md`](amazon-extractor.md)
 
 ## 评论采集（v2）
 

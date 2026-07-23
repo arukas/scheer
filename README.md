@@ -31,11 +31,12 @@ Scheer 是一款面向多平台商品采集的 Chrome 扩展（Manifest V3）。
 | NewShop / WShop |    ✅    | `/api/store/products/<handle>` 接口             |
 | ShopBase        |    ✅    | `window.__INITIAL_STATE__` 页面注水数据         |
 | ShopLine        |    ✅    | `window.__PRELOAD_STATE__.product` 页面注水数据 |
-| XShopPy         |    ✅    | `product_id` → `/buyer/product/pop-detail`      |
+| XShopPy         | 🔍 识别  | 采集器待实现                                    |
 | ShopLazza       |    ✅    | API + DOM 混合采集                              |
 | TikTok Shop     |    ✅    | `__MODERN_ROUTER_DATA__` 页面内嵌 JSON          |
-| WordPress       | 🔍 识别  | 当前仅识别，采集器待实现                        |
-| ShadowShop      | 🔍 识别  | 当前仅识别，采集器待实现                        |
+| Amazon          |    ✅    | 商品 DOM + `twister-js-init-dpx-data`           |
+| WordPress       |    ✅    | JSON-LD Product 结构化数据                      |
+| ShadowShop      |    ✅    | `window.__INITIAL_STATE__` 页面注水数据         |
 
 > 评论采集、批量自动采集、列表页采集等将后续版本支持。
 
@@ -261,14 +262,17 @@ Content-Type: application/json
 | 平台            | 提交代码     |
 | --------------- | ------------ |
 | Shopify         | `shopify`    |
-| NewShop / WShop | `wshop`      |
+| NewShop / WShop | `newshop`    |
 | XShopPy         | `xshoppy`    |
 | ShopLazza       | `shoplazza`  |
 | ShopLine        | `shopline`   |
 | ShopBase        | `shopbase`   |
 | TikTok Shop     | `tiktok`     |
+| Amazon          | `amazon`     |
 | WordPress       | `wordpress`  |
 | ShadowShop      | `shadowshop` |
+
+> 旧后端可将 `newshop` 映射为 `wshop`。
 
 ## 项目目录
 

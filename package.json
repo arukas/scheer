@@ -1,6 +1,6 @@
 {
   "name": "scheer",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "私有化分发的 Chrome 扩展（MV3），用于在浏览商品页时一键采集商品信息并推送到用户自有的后端服务。",
   "private": true,
   "type": "module",

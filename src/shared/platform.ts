@@ -25,9 +25,76 @@ const API_TIMEOUT_MS = 5000;
 
 const PRODUCT_PATH_SEGMENTS = ['products', 'product'];
 
+/** Amazon ASIN：10 位字母数字（书籍为 10 位 ISBN） */
+const AMAZON_ASIN_RE = /^[A-Z0-9]{10}$/;
+
 function isTikTokHost(host: string): boolean {
   const h = host.toLowerCase();
   return h.includes('tiktok') || h.includes('.tk');
+}
+
+/**
+ * Amazon 站点域名白名单（含国际站；amazon.co.uk 形态的双段后缀无法用
+ * 正则与 amazon.evil.com 之类的仿冒域名区分，故显式枚举）。
+ */
+const AMAZON_DOMAINS = [
+  'amazon.com',
+  'amazon.ca',
+  'amazon.com.mx',
+  'amazon.com.br',
+  'amazon.co.uk',
+  'amazon.de',
+  'amazon.fr',
+  'amazon.it',
+  'amazon.es',
+  'amazon.nl',
+  'amazon.se',
+  'amazon.pl',
+  'amazon.com.be',
+  'amazon.ie',
+  'amazon.com.tr',
+  'amazon.ae',
+  'amazon.sa',
+  'amazon.eg',
+  'amazon.in',
+  'amazon.co.jp',
+  'amazon.sg',
+  'amazon.com.au',
+  'amazon.co.za',
+  'amazon.cn',
+];
+
+/**
+ * 判断是否为 Amazon 站点 host（含 www./smile./m. 等各级子域名）。
+ */
+export function isAmazonHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return AMAZON_DOMAINS.some((domain) => h === domain || h.endsWith(`.${domain}`));
+}
+
+/**
+ * 从 Amazon URL 提取 ASIN。支持形态：
+ * - /dp/<ASIN>
+ * - /gp/product/<ASIN>
+ * - /<slug>/dp/<ASIN>
+ * 未命中返回 null。
+ */
+export function extractAmazonAsinFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const paths = u.pathname.split('/').filter(Boolean);
+    for (let i = 0; i < paths.length - 1; i++) {
+      const segment = paths[i].toLowerCase();
+      const isAsinSlot =
+        segment === 'dp' || (segment === 'gp' && paths[i + 1]?.toLowerCase() === 'product');
+      if (!isAsinSlot) continue;
+      const candidate = segment === 'dp' ? paths[i + 1] : paths[i + 2];
+      if (candidate && AMAZON_ASIN_RE.test(candidate)) return candidate;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -35,6 +102,7 @@ function isTikTokHost(host: string): boolean {
  * - 仅允许 https 页面
  * - 路径需包含 /products/ 或 /product/
  * - TikTok 相关域名（host 含 tiktok 或 .tk）豁免路径检查
+ * - Amazon 站点（含国际站）要求 /dp/<ASIN> 或 /gp/product/<ASIN>
  */
 export function isAllowedProductUrl(url: string): boolean {
   try {
@@ -43,6 +111,7 @@ export function isAllowedProductUrl(url: string): boolean {
 
     const host = u.hostname.toLowerCase();
     if (isTikTokHost(host)) return true;
+    if (isAmazonHost(host)) return extractAmazonAsinFromUrl(url) !== null;
 
     const path = u.pathname.toLowerCase();
     return path.includes('/products/') || path.includes('/product/');
@@ -88,6 +157,11 @@ export function detectPlatformByUrl(url: string): PlatformKey | null {
     // Shopify 官方托管域名
     if (host.endsWith('myshopify.com')) {
       return 'shopify';
+    }
+
+    // Amazon（含国际站），需为商品详情页
+    if (isAmazonHost(host) && extractAmazonAsinFromUrl(url) !== null) {
+      return 'amazon';
     }
 
     return null;
@@ -235,6 +309,15 @@ export function detectPlatformByHtml(html: string): PlatformKey | null {
   // ShopBase：脚本 host 包含 thesitebase.net
   if (srcs.some((src) => src.includes('thesitebase.net'))) {
     return 'shopbase';
+  }
+
+  // Amazon：页面引用其 CDN 资源或 UI 框架（放在最后，避免抢占其它平台指纹）
+  if (
+    html.includes('images-na.ssl-images-amazon.com') ||
+    html.includes('m.media-amazon.com') ||
+    html.includes('AmazonUI')
+  ) {
+    return 'amazon';
   }
 
   return null;

@@ -7,6 +7,7 @@ import {
   detectPlatform,
   getPageStatus,
   isAllowedProductUrl,
+  extractAmazonAsinFromUrl,
 } from '@/shared/platform';
 
 vi.mock('@/shared/storage', () => ({
@@ -74,6 +75,22 @@ describe('isAllowedProductUrl', () => {
     expect(isAllowedProductUrl('https://www.tiktok.com/tiktok-shop/something')).toBe(true);
     expect(isAllowedProductUrl('https://item.tk/123')).toBe(true);
   });
+
+  it('allows amazon product pages with ASIN in path', () => {
+    expect(isAllowedProductUrl('https://www.amazon.com/dp/B0GRK1N94H')).toBe(true);
+    expect(
+      isAllowedProductUrl('https://www.amazon.com/Oura-Ring-Smallest/dp/B0GRK1N94H?th=1')
+    ).toBe(true);
+    expect(isAllowedProductUrl('https://www.amazon.co.uk/gp/product/B0GRK1N94H')).toBe(true);
+    expect(isAllowedProductUrl('https://amazon.de/dp/0735211299')).toBe(true);
+  });
+
+  it('rejects amazon non-product pages and lookalike hosts', () => {
+    expect(isAllowedProductUrl('https://www.amazon.com/s?k=smart+ring')).toBe(false);
+    expect(isAllowedProductUrl('https://www.amazon.com/gp/help/customer')).toBe(false);
+    expect(isAllowedProductUrl('https://amazon.evil.com/dp/B0GRK1N94H')).toBe(false);
+    expect(isAllowedProductUrl('https://notamazon.com/dp/B0GRK1N94H')).toBe(false);
+  });
 });
 
 describe('detectPlatformByUrl', () => {
@@ -83,6 +100,16 @@ describe('detectPlatformByUrl', () => {
 
   it('detects myshopify.com as shopify', () => {
     expect(detectPlatformByUrl('https://example.myshopify.com/products/test')).toBe('shopify');
+  });
+
+  it('detects amazon product pages including international sites', () => {
+    expect(detectPlatformByUrl('https://www.amazon.com/dp/B0GRK1N94H')).toBe('amazon');
+    expect(detectPlatformByUrl('https://www.amazon.co.uk/gp/product/B0GRK1N94H')).toBe('amazon');
+    expect(detectPlatformByUrl('https://smile.amazon.com/Oura-Ring/dp/B0GRK1N94H')).toBe('amazon');
+  });
+
+  it('returns null for amazon non-product pages', () => {
+    expect(detectPlatformByUrl('https://www.amazon.com/s?k=ring')).toBeNull();
   });
 
   it('returns null for unknown custom domain', () => {
@@ -214,6 +241,33 @@ describe('detectPlatformByHtml', () => {
   it('returns null when no known script marker', () => {
     const html = '<html><head><script src="https://example.com/app.js"></script></head></html>';
     expect(detectPlatformByHtml(html)).toBeNull();
+  });
+
+  it('detects Amazon by CDN resource markers', () => {
+    const html =
+      '<html><head><link rel="stylesheet" href="https://images-na.ssl-images-amazon.com/images/G/01/AUIClients/AmazonUI-xxx.css"></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('amazon');
+    const imgHtml =
+      '<html><body><img src="https://m.media-amazon.com/images/I/abc.jpg"></body></html>';
+    expect(detectPlatformByHtml(imgHtml)).toBe('amazon');
+  });
+});
+
+describe('extractAmazonAsinFromUrl', () => {
+  it('extracts ASIN from /dp/ and /gp/product/ paths', () => {
+    expect(extractAmazonAsinFromUrl('https://www.amazon.com/dp/B0GRK1N94H')).toBe('B0GRK1N94H');
+    expect(extractAmazonAsinFromUrl('https://www.amazon.com/Oura-Ring/dp/B0GRK1N94H?th=1')).toBe(
+      'B0GRK1N94H'
+    );
+    expect(extractAmazonAsinFromUrl('https://www.amazon.de/gp/product/0735211299')).toBe(
+      '0735211299'
+    );
+  });
+
+  it('returns null for invalid or missing ASIN', () => {
+    expect(extractAmazonAsinFromUrl('https://www.amazon.com/dp/SHORT')).toBeNull();
+    expect(extractAmazonAsinFromUrl('https://www.amazon.com/s?k=ring')).toBeNull();
+    expect(extractAmazonAsinFromUrl('not a url')).toBeNull();
   });
 });
 

@@ -20,9 +20,16 @@
 当前已支持的平台代码：
 
 - `shopify`
-- `shopline`
 - `newshop`
-- `jsonld`（兜底抓取）
+- `shopbase`
+- `shopline`
+- `shoplazza`
+- `tiktok`
+- `wordpress`
+- `shadowshop`
+- `amazon`
+
+`newshop` 在旧后端中可映射为 `wshop`。XShopPy 当前仅支持识别，尚不提交商品数据。
 
 ## 商品主体：`Product`
 
@@ -192,15 +199,16 @@
 
 ## 各平台转换状态
 
-| 平台       | 实现文件                            | 状态      |
-| ---------- | ----------------------------------- | --------- |
-| Shopify    | `src/shared/extractors/shopify.ts`  | ✅ 已兼容 |
-| ShopLine   | `src/shared/extractors/shopline.ts` | ✅ 已兼容 |
-| JSON-LD    | `src/shared/extractors/jsonld.ts`   | ✅ 已兼容 |
-| NewShop    | `src/shared/extractors/newshop.ts`  | ✅ 已兼容 |
-| WordPress  | 仅识别，采集器待实现                | 识别项    |
-| ShadowShop | 仅识别，采集器待实现                | 识别项    |
-| ShopBase   | 未实现                              | 设计中    |
-| XShopPy    | 未实现                              | 设计中    |
-| ShopLazza  | 未实现                              | 设计中    |
-| TikTok     | 未实现                              | 设计中    |
+| 平台       | 实现文件                              | 状态      |
+| ---------- | ------------------------------------- | --------- |
+| Shopify    | `src/shared/extractors/shopify.ts`    | ✅ 已兼容 |
+| ShopLine   | `src/shared/extractors/shopline.ts`   | ✅ 已兼容 |
+| JSON-LD    | `src/shared/extractors/jsonld.ts`     | ✅ 已兼容 |
+| NewShop    | `src/shared/extractors/newshop.ts`    | ✅ 已兼容 |
+| WordPress  | `src/shared/extractors/jsonld.ts`     | ✅ 已兼容 |
+| ShadowShop | `src/shared/extractors/shadowshop.ts` | ✅ 已兼容 |
+| ShopBase   | `src/shared/extractors/shopbase.ts`   | ✅ 已兼容 |
+| XShopPy    | 尚无采集器                            | 仅识别    |
+| ShopLazza  | `src/shared/extractors/shoplazza.ts`  | ✅ 已兼容 |
+| TikTok     | `src/shared/extractors/tiktok.ts`     | ✅ 已兼容 |
+| Amazon     | `src/shared/extractors/amazon.ts`     | ✅ 已兼容 |
