@@ -1,0 +1,1379 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Scheer 是一款隐私优先的 Chrome 商品采集扩展，将多平台商品数据归一化并推送到你的后端。"
+    />
+    <meta name="theme-color" content="#0b1110" />
+    <title>Scheer — 商品数据，直接到你的后端</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1110;
+        --surface: #111a18;
+        --surface-2: #16221f;
+        --line: #263733;
+        --text: #f1f6f2;
+        --muted: #9dafaa;
+        --green: #8ff0b5;
+        --green-strong: #5cdb91;
+        --orange: #ffb36b;
+        --max: 1160px;
+        --radius: 20px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 82% 2%, rgb(92 219 145 / 12%), transparent 28rem),
+          radial-gradient(circle at 10% 30%, rgb(255 179 107 / 7%), transparent 24rem), var(--bg);
+        color: var(--text);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        line-height: 1.65;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button,
+      a {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      :focus-visible {
+        outline: 3px solid var(--green);
+        outline-offset: 3px;
+      }
+
+      .skip-link {
+        position: fixed;
+        z-index: 100;
+        top: 12px;
+        left: 12px;
+        padding: 8px 12px;
+        transform: translateY(-150%);
+        border-radius: 8px;
+        background: var(--green);
+        color: #07100b;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .container {
+        width: min(calc(100% - 40px), var(--max));
+        margin-inline: auto;
+      }
+
+      .nav {
+        position: sticky;
+        z-index: 20;
+        top: 0;
+        border-bottom: 1px solid rgb(255 255 255 / 7%);
+        background: rgb(11 17 16 / 82%);
+        backdrop-filter: blur(18px);
+      }
+
+      .nav-inner {
+        display: flex;
+        min-height: 72px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 28px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 11px;
+        font-size: 18px;
+        font-weight: 760;
+        letter-spacing: -0.02em;
+      }
+
+      .mark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border: 1px solid rgb(143 240 181 / 35%);
+        border-radius: 10px;
+        background: rgb(143 240 181 / 10%);
+        color: var(--green);
+        font:
+          800 17px/1 ui-monospace,
+          monospace;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .nav-links a:hover {
+        color: var(--text);
+      }
+
+      .nav-github {
+        padding: 8px 13px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        color: var(--text);
+      }
+
+      .hero {
+        display: grid;
+        min-height: 680px;
+        align-items: center;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 72px;
+        padding-block: 88px 72px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 24px;
+        color: var(--green);
+        font:
+          700 13px/1.2 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 16px var(--green);
+        content: '';
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 700px;
+        margin-bottom: 24px;
+        font-size: clamp(48px, 6.5vw, 82px);
+        line-height: 0.98;
+        letter-spacing: -0.065em;
+      }
+
+      .hero h1 span {
+        color: var(--green);
+      }
+
+      .lead {
+        max-width: 610px;
+        margin-bottom: 34px;
+        color: var(--muted);
+        font-size: clamp(17px, 2vw, 20px);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 18px;
+        border: 1px solid var(--green);
+        border-radius: 12px;
+        background: var(--green);
+        color: #08110c;
+        font-weight: 750;
+        transition:
+          transform 160ms ease,
+          background 160ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+        background: #a6f7c4;
+      }
+
+      .button.secondary {
+        border-color: var(--line);
+        background: transparent;
+        color: var(--text);
+      }
+
+      .button.secondary:hover {
+        border-color: #435a54;
+        background: var(--surface);
+      }
+
+      .hero-visual {
+        position: relative;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: rgb(17 26 24 / 76%);
+        box-shadow: 0 30px 90px rgb(0 0 0 / 30%);
+      }
+
+      .hero-visual::before {
+        position: absolute;
+        z-index: -1;
+        inset: 20% -8%;
+        border-radius: 50%;
+        background: rgb(92 219 145 / 13%);
+        filter: blur(60px);
+        content: '';
+      }
+
+      .window-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 0 15px;
+      }
+
+      .window-bar i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #41534f;
+      }
+
+      .window-title {
+        margin-left: 8px;
+        color: #738681;
+        font:
+          11px ui-monospace,
+          monospace;
+      }
+
+      .pipeline {
+        display: grid;
+        gap: 10px;
+      }
+
+      .pipeline-step {
+        display: grid;
+        align-items: center;
+        padding: 17px;
+        border: 1px solid rgb(255 255 255 / 7%);
+        border-radius: 15px;
+        background: #0d1513;
+        grid-template-columns: 42px 1fr auto;
+        gap: 13px;
+      }
+
+      .step-no {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 11px;
+        background: var(--surface-2);
+        color: var(--green);
+        font:
+          700 13px ui-monospace,
+          monospace;
+      }
+
+      .pipeline-step strong,
+      .pipeline-step small {
+        display: block;
+      }
+
+      .pipeline-step strong {
+        font-size: 14px;
+      }
+
+      .pipeline-step small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .status {
+        color: var(--green);
+        font:
+          700 11px ui-monospace,
+          monospace;
+      }
+
+      .json-peek {
+        overflow: hidden;
+        padding: 18px;
+        border: 1px solid rgb(143 240 181 / 18%);
+        border-radius: 15px;
+        background: #08100e;
+        color: #c7d5d0;
+        font:
+          12px/1.75 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        white-space: pre;
+      }
+
+      .json-peek .key {
+        color: #8ff0b5;
+      }
+
+      .json-peek .string {
+        color: #ffc98f;
+      }
+
+      .stats {
+        display: grid;
+        margin-bottom: 120px;
+        border-block: 1px solid var(--line);
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .stat {
+        padding: 30px 24px;
+        text-align: center;
+      }
+
+      .stat + .stat {
+        border-left: 1px solid var(--line);
+      }
+
+      .stat strong {
+        display: block;
+        color: var(--green);
+        font-size: 34px;
+        line-height: 1.2;
+        letter-spacing: -0.04em;
+      }
+
+      .stat span {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      section {
+        scroll-margin-top: 92px;
+      }
+
+      .section {
+        padding-block: 28px 112px;
+      }
+
+      .section-heading {
+        display: grid;
+        align-items: end;
+        margin-bottom: 42px;
+        grid-template-columns: 1fr 0.8fr;
+        gap: 30px;
+      }
+
+      h2 {
+        max-width: 660px;
+        margin-bottom: 0;
+        font-size: clamp(34px, 4.4vw, 56px);
+        line-height: 1.08;
+        letter-spacing: -0.05em;
+      }
+
+      .section-heading p {
+        margin-bottom: 4px;
+        color: var(--muted);
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+
+      .card {
+        min-height: 230px;
+        padding: 26px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: linear-gradient(145deg, rgb(22 34 31 / 78%), rgb(13 21 19 / 78%));
+      }
+
+      .card-index {
+        display: block;
+        margin-bottom: 34px;
+        color: var(--green);
+        font:
+          700 12px ui-monospace,
+          monospace;
+      }
+
+      .card h3 {
+        margin-bottom: 10px;
+        font-size: 20px;
+        letter-spacing: -0.025em;
+      }
+
+      .card p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .platform-panel {
+        display: grid;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgb(17 26 24 / 55%);
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+      }
+
+      .platform {
+        min-height: 108px;
+        padding: 17px;
+        border-radius: 15px;
+        background: #0d1513;
+      }
+
+      .platform strong {
+        display: block;
+        margin-bottom: 16px;
+        font-size: 14px;
+      }
+
+      .platform span {
+        color: var(--green);
+        font:
+          11px ui-monospace,
+          monospace;
+      }
+
+      .platform.detect span {
+        color: var(--orange);
+      }
+
+      .flow {
+        display: grid;
+        margin-top: 18px;
+        padding: 34px;
+        border: 1px dashed #36504a;
+        border-radius: 22px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 36px;
+      }
+
+      .flow-item {
+        position: relative;
+      }
+
+      .flow-item:not(:last-child)::after {
+        position: absolute;
+        top: 5px;
+        right: -25px;
+        color: #506660;
+        content: '→';
+      }
+
+      .flow-item b {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--green);
+        font:
+          700 12px ui-monospace,
+          monospace;
+      }
+
+      .flow-item strong {
+        display: block;
+        font-size: 17px;
+      }
+
+      .flow-item small {
+        color: var(--muted);
+      }
+
+      .docs-shell {
+        display: grid;
+        align-items: start;
+        grid-template-columns: 230px minmax(0, 1fr);
+        gap: 48px;
+      }
+
+      .docs-nav {
+        position: sticky;
+        top: 104px;
+        display: grid;
+        padding: 17px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgb(17 26 24 / 75%);
+        gap: 4px;
+      }
+
+      .docs-nav strong {
+        padding: 7px 10px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .docs-nav a {
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .docs-nav a:hover {
+        background: var(--surface-2);
+        color: var(--text);
+      }
+
+      .docs-content {
+        min-width: 0;
+      }
+
+      .doc-section {
+        padding-bottom: 72px;
+      }
+
+      .doc-section h3 {
+        margin-bottom: 14px;
+        font-size: clamp(25px, 3vw, 34px);
+        letter-spacing: -0.035em;
+      }
+
+      .doc-section > p {
+        max-width: 760px;
+        color: var(--muted);
+      }
+
+      .endpoint {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin: 22px 0 16px;
+        padding: 13px 15px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        font:
+          14px ui-monospace,
+          monospace;
+      }
+
+      .method {
+        padding: 4px 7px;
+        border-radius: 6px;
+        background: rgb(143 240 181 / 12%);
+        color: var(--green);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .method.get {
+        background: rgb(255 179 107 / 12%);
+        color: var(--orange);
+      }
+
+      .note {
+        margin: 20px 0;
+        padding: 15px 17px;
+        border-left: 3px solid var(--green);
+        border-radius: 0 10px 10px 0;
+        background: rgb(143 240 181 / 7%);
+        color: #cbd8d3;
+        font-size: 14px;
+      }
+
+      .code-block {
+        position: relative;
+        margin: 18px 0;
+      }
+
+      pre {
+        overflow-x: auto;
+        margin: 0;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: #070d0c;
+        color: #c6d3cf;
+        font:
+          13px/1.72 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Consolas,
+          monospace;
+        tab-size: 2;
+      }
+
+      .copy {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        min-width: 56px;
+        padding: 6px 9px;
+        border: 1px solid #31453f;
+        border-radius: 7px;
+        background: #111b18;
+        color: var(--muted);
+        cursor: pointer;
+        font:
+          11px ui-monospace,
+          monospace;
+      }
+
+      .copy:hover {
+        color: var(--text);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      th,
+      td {
+        padding: 13px 15px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      th {
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      td code,
+      p code,
+      li code {
+        color: var(--green);
+        font-family: ui-monospace, monospace;
+        font-size: 0.92em;
+      }
+
+      .required {
+        color: var(--orange);
+      }
+
+      .steps {
+        display: grid;
+        margin-top: 28px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+
+      .step {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+      }
+
+      .step b {
+        display: block;
+        margin-bottom: 22px;
+        color: var(--green);
+        font:
+          700 12px ui-monospace,
+          monospace;
+      }
+
+      .step strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .step p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .cta {
+        display: grid;
+        align-items: center;
+        margin-bottom: 96px;
+        padding: 50px;
+        border: 1px solid rgb(143 240 181 / 28%);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 90% 10%, rgb(143 240 181 / 16%), transparent 18rem),
+          var(--surface);
+        grid-template-columns: 1fr auto;
+        gap: 30px;
+      }
+
+      .cta h2 {
+        max-width: 680px;
+        font-size: clamp(30px, 4vw, 48px);
+      }
+
+      .cta p {
+        margin: 14px 0 0;
+        color: var(--muted);
+      }
+
+      footer {
+        padding: 26px 0 38px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .footer-inner {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      @media (max-width: 900px) {
+        .nav-links a:not(.nav-github) {
+          display: none;
+        }
+
+        .hero {
+          min-height: auto;
+          grid-template-columns: 1fr;
+          gap: 48px;
+          padding-top: 72px;
+        }
+
+        .hero-copy {
+          max-width: 720px;
+        }
+
+        .section-heading,
+        .docs-shell,
+        .cta {
+          grid-template-columns: 1fr;
+        }
+
+        .feature-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .platform-panel {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .docs-nav {
+          position: static;
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .docs-nav strong {
+          grid-column: 1 / -1;
+        }
+
+        .cta {
+          padding: 36px;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .container {
+          width: min(calc(100% - 28px), var(--max));
+        }
+
+        .nav-inner {
+          min-height: 62px;
+        }
+
+        .hero {
+          padding-block: 54px 60px;
+        }
+
+        h1 {
+          font-size: clamp(44px, 14vw, 64px);
+        }
+
+        .hero-visual {
+          padding: 12px;
+          border-radius: 21px;
+        }
+
+        .pipeline-step {
+          grid-template-columns: 38px 1fr;
+        }
+
+        .pipeline-step .status {
+          display: none;
+        }
+
+        .stats {
+          margin-bottom: 86px;
+        }
+
+        .stat {
+          padding: 23px 8px;
+        }
+
+        .stat strong {
+          font-size: 27px;
+        }
+
+        .stat span {
+          font-size: 12px;
+        }
+
+        .section {
+          padding-bottom: 84px;
+        }
+
+        .section-heading {
+          margin-bottom: 28px;
+        }
+
+        .feature-grid,
+        .platform-panel,
+        .flow,
+        .steps {
+          grid-template-columns: 1fr;
+        }
+
+        .card {
+          min-height: auto;
+        }
+
+        .card-index {
+          margin-bottom: 22px;
+        }
+
+        .flow {
+          gap: 24px;
+        }
+
+        .flow-item:not(:last-child)::after {
+          top: auto;
+          right: auto;
+          bottom: -22px;
+          left: 2px;
+          transform: rotate(90deg);
+        }
+
+        .docs-nav {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .endpoint {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .cta {
+          padding: 28px;
+        }
+
+        .footer-inner {
+          flex-direction: column;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
+    <nav class="nav" aria-label="主导航">
+      <div class="container nav-inner">
+        <a class="brand" href="#" aria-label="Scheer 首页">
+          <span class="mark" aria-hidden="true">S/</span>
+          Scheer
+        </a>
+        <div class="nav-links">
+          <a href="#features">功能</a>
+          <a href="#platforms">平台</a>
+          <a href="#api">API 文档</a>
+          <a href="/privacy/">隐私</a>
+          <a
+            class="nav-github"
+            href="https://github.com/arukas/scheer"
+            target="_blank"
+            rel="noreferrer"
+            >GitHub ↗</a
+          >
+        </div>
+      </div>
+    </nav>
+
+    <main id="main">
+      <div class="container hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Privacy-first Chrome extension</span>
+          <h1>商品数据，<span>直接</span>到你的后端。</h1>
+          <p class="lead">
+            Scheer
+            在浏览器中识别商品页、提取多平台数据并归一化为统一结构。一键提交，不经过第三方中转。
+          </p>
+          <div class="actions">
+            <a class="button" href="#api">开始对接 API →</a>
+            <a
+              class="button secondary"
+              href="https://github.com/arukas/scheer"
+              target="_blank"
+              rel="noreferrer"
+              >查看源码</a
+            >
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-label="Scheer 数据处理流程示意">
+          <div class="window-bar" aria-hidden="true">
+            <i></i><i></i><i></i><span class="window-title">scheer / pipeline</span>
+          </div>
+          <div class="pipeline">
+            <div class="pipeline-step">
+              <span class="step-no">01</span>
+              <div><strong>识别商品页</strong><small>Shopify · Amazon · TikTok Shop</small></div>
+              <span class="status">DETECTED</span>
+            </div>
+            <div class="pipeline-step">
+              <span class="step-no">02</span>
+              <div><strong>归一化字段</strong><small>商品 · 变体 · 规格 · 媒体</small></div>
+              <span class="status">NORMALIZED</span>
+            </div>
+            <div class="pipeline-step">
+              <span class="step-no">03</span>
+              <div><strong>推送自有后端</strong><small>HTTPS · Bearer Token · JSON</small></div>
+              <span class="status">2XX OK</span>
+            </div>
+            <div class="json-peek" aria-hidden="true">
+              { <span class="key">"platform"</span>: <span class="string">"shopify"</span>,
+              <span class="key">"source_url"</span>: <span class="string">"https://…"</span>,
+              <span class="key">"product"</span>: { <span class="key">"title"</span>:
+              <span class="string">"Sample Product"</span>, <span class="key">"variants"</span>: [ …
+              ], <span class="key">"images"</span>: [ … ] } }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container stats" aria-label="Scheer 概览">
+        <div class="stat"><strong>9</strong><span>个可采集平台</span></div>
+        <div class="stat"><strong>2</strong><span>个后端接口</span></div>
+        <div class="stat"><strong>0</strong><span>个中间服务器</span></div>
+      </div>
+
+      <section class="container section" id="features">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">What it does</span>
+            <h2>只做采集链路里真正重要的事。</h2>
+          </div>
+          <p>
+            Scheer
+            把平台差异留在扩展里，让你的后端只维护一套接收逻辑。凭据、历史和调试数据都留在本机。
+          </p>
+        </div>
+        <div class="feature-grid">
+          <article class="card">
+            <span class="card-index">01 / COLLECT</span>
+            <h3>一键采集当前商品</h3>
+            <p>自动判断当前页面能否采集，用户确认后才提取和提交，不做自动翻页或批量爬取。</p>
+          </article>
+          <article class="card">
+            <span class="card-index">02 / NORMALIZE</span>
+            <h3>统一商品 Schema</h3>
+            <p>不同平台的商品、规格、变体、价格和媒体，统一映射成结构稳定的 JSON。</p>
+          </article>
+          <article class="card">
+            <span class="card-index">03 / OWN</span>
+            <h3>数据直达自有后端</h3>
+            <p>
+              目标地址、鉴权头和 Token 均由你配置。数据不经过 Scheer 的服务器，因为根本没有服务器。
+            </p>
+          </article>
+          <article class="card">
+            <span class="card-index">04 / DEBUG</span>
+            <h3>本地历史与脱敏日志</h3>
+            <p>记录创建结果，按需开启 Debug 并导出 NDJSON 日志；敏感请求头会自动脱敏。</p>
+          </article>
+          <article class="card">
+            <span class="card-index">05 / FLEXIBLE</span>
+            <h3>灵活的接口配置</h3>
+            <p>支持域名加相对路径或完整 URL，也可调整鉴权 Header、前缀、自定义 Header 和超时。</p>
+          </article>
+          <article class="card">
+            <span class="card-index">06 / PRIVATE</span>
+            <h3>隐私优先</h3>
+            <p>扩展完全在 Chrome 中运行，凭据存于 chrome.storage.local，不上传账号密码。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="container section" id="platforms">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">Platform coverage</span>
+            <h2>一个入口，覆盖主流商品平台。</h2>
+          </div>
+          <p>平台采集器各自处理数据来源与页面差异，提交到后端时使用相同的数据模型。</p>
+        </div>
+        <div class="platform-panel">
+          <div class="platform"><strong>Shopify</strong><span>● 可采集</span></div>
+          <div class="platform"><strong>NewShop</strong><span>● 可采集</span></div>
+          <div class="platform"><strong>ShopBase</strong><span>● 可采集</span></div>
+          <div class="platform"><strong>ShopLine</strong><span>● 可采集</span></div>
+          <div class="platform"><strong>ShopLazza</strong><span>● 可采集</span></div>
+          <div class="platform"><strong>TikTok Shop</strong><span>● 可采集</span></div>
+          <div class="platform"><strong>Amazon</strong><span>● 可采集</span></div>
+          <div class="platform"><strong>WordPress</strong><span>● JSON-LD</span></div>
+          <div class="platform"><strong>ShadowShop</strong><span>● 可采集</span></div>
+          <div class="platform detect"><strong>XShopPy</strong><span>◐ 仅识别</span></div>
+        </div>
+        <div class="flow" aria-label="数据流">
+          <div class="flow-item">
+            <b>INPUT</b>
+            <strong>当前商品页面</strong>
+            <small>用户主动打开并授权访问</small>
+          </div>
+          <div class="flow-item">
+            <b>SCHEER</b>
+            <strong>平台识别与字段转换</strong>
+            <small>全部在浏览器内完成</small>
+          </div>
+          <div class="flow-item">
+            <b>OUTPUT</b>
+            <strong>你的 REST API</strong>
+            <small>标准 JSON，经 HTTPS 直达</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="container section" id="api">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">API reference</span>
+            <h2>后端只需实现两个接口。</h2>
+          </div>
+          <p>
+            默认路径是 <code>/scheer/products</code> 和
+            <code>/scheer/me</code>。两者都可以在扩展配置页改为完整 URL。
+          </p>
+        </div>
+
+        <div class="docs-shell">
+          <aside class="docs-nav" aria-label="API 文档目录">
+            <strong>文档目录</strong>
+            <a href="#api-auth">鉴权</a>
+            <a href="#api-create">创建商品</a>
+            <a href="#api-schema">字段结构</a>
+            <a href="#api-response">响应格式</a>
+            <a href="#api-test">测试连接</a>
+            <a href="#api-config">配置示例</a>
+          </aside>
+
+          <div class="docs-content">
+            <section class="doc-section" id="api-auth">
+              <h3>鉴权</h3>
+              <p>
+                默认使用 Bearer Token。Header 名和前缀均可配置，自定义 Header
+                会覆盖同名默认值。生产环境请使用 HTTPS。
+              </p>
+              <div class="code-block">
+                <button class="copy" type="button" data-copy>复制</button>
+                <pre><code>Authorization: Bearer &lt;secret&gt;
+Content-Type: application/json</code></pre>
+              </div>
+              <div class="note">
+                默认请求超时为 30 秒。密钥仅保存在用户本机的
+                <code>chrome.storage.local</code> 中。
+              </div>
+            </section>
+
+            <section class="doc-section" id="api-create">
+              <h3>创建商品</h3>
+              <p>接收扩展从当前页面提取并归一化后的完整商品数据。</p>
+              <div class="endpoint">
+                <span class="method">POST</span>
+                <span>https://api.example.com/scheer/products</span>
+              </div>
+              <div class="code-block">
+                <button class="copy" type="button" data-copy>复制</button>
+                <pre><code>{
+  "platform": "shopify",
+  "source_url": "https://shop.example.com/products/sample",
+  "source_product_id": "123456",
+  "product": {
+    "title": "Sample Product",
+    "handle": "sample-product",
+    "description_html": "&lt;p&gt;商品描述&lt;/p&gt;",
+    "vendor": "Example Brand",
+    "product_type": "Apparel",
+    "tags": ["new", "summer"],
+    "options": [
+      {
+        "name": "Color",
+        "position": 1,
+        "values": ["Black", "White"]
+      }
+    ],
+    "variants": [
+      {
+        "source_variant_id": "987654",
+        "position": 1,
+        "title": "Black",
+        "price": "99.00",
+        "compare_at_price": "129.00",
+        "sku": "SAMPLE-BLK",
+        "options": [
+          { "name": "Color", "value": "Black" }
+        ],
+        "source_image_id": "111",
+        "grams": 200,
+        "weight": 0.2,
+        "weight_unit": "kg"
+      }
+    ],
+    "images": [
+      {
+        "source_image_id": "111",
+        "position": 1,
+        "src": "https://cdn.example.com/product.jpg",
+        "alt": "Sample Product",
+        "type": "image"
+      }
+    ]
+  }
+}</code></pre>
+              </div>
+            </section>
+
+            <section class="doc-section" id="api-schema">
+              <h3>字段结构</h3>
+              <p>
+                价格以两位小数字符串传递，避免浮点误差。<code>variants</code> 和
+                <code>images</code> 始终为数组。
+              </p>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>字段</th>
+                      <th>类型</th>
+                      <th>要求</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>platform</code></td>
+                      <td>string</td>
+                      <td class="required">必填</td>
+                      <td>平台代码</td>
+                    </tr>
+                    <tr>
+                      <td><code>source_url</code></td>
+                      <td>string</td>
+                      <td class="required">必填</td>
+                      <td>原商品页完整 URL</td>
+                    </tr>
+                    <tr>
+                      <td><code>source_product_id</code></td>
+                      <td>string</td>
+                      <td>可选</td>
+                      <td>平台原始商品 ID</td>
+                    </tr>
+                    <tr>
+                      <td><code>product.title</code></td>
+                      <td>string</td>
+                      <td class="required">必填</td>
+                      <td>商品标题</td>
+                    </tr>
+                    <tr>
+                      <td><code>product.options</code></td>
+                      <td>array</td>
+                      <td>可选</td>
+                      <td>规格维度、顺序和可选值</td>
+                    </tr>
+                    <tr>
+                      <td><code>product.variants</code></td>
+                      <td>array</td>
+                      <td class="required">必填</td>
+                      <td>变体列表；价格为 decimal 字符串</td>
+                    </tr>
+                    <tr>
+                      <td><code>product.images</code></td>
+                      <td>array</td>
+                      <td class="required">必填</td>
+                      <td>图片或视频列表</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="note">
+                平台代码：<code>shopify</code>、<code>newshop</code>、<code>shopbase</code>、<code>shopline</code>、<code>shoplazza</code>、<code>tiktok</code>、<code>amazon</code>、<code>wordpress</code>、<code>shadowshop</code>。旧后端可将
+                <code>newshop</code> 映射为 <code>wshop</code>。
+              </div>
+            </section>
+
+            <section class="doc-section" id="api-response">
+              <h3>响应格式</h3>
+              <p>
+                HTTP 2xx 时返回 JSON。<code>product_id</code> 和 <code>log_id</code>
+                必须为非空字符串；扩展会把它们写入本地历史。
+              </p>
+              <div class="code-block">
+                <button class="copy" type="button" data-copy>复制</button>
+                <pre><code>{
+  "product_id": "backend-product-id",
+  "log_id": "import-log-id",
+  "user": {
+    "id": "user-id",
+    "name": "Current User"
+  },
+  "message": "created"
+}</code></pre>
+              </div>
+              <p>HTTP 4xx / 5xx 时建议返回可直接展示给用户的错误信息：</p>
+              <div class="code-block">
+                <button class="copy" type="button" data-copy>复制</button>
+                <pre><code>{
+  "message": "商品已存在"
+}</code></pre>
+              </div>
+            </section>
+
+            <section class="doc-section" id="api-test">
+              <h3>测试连接</h3>
+              <p>Options 页用此接口验证地址、鉴权和 JSON 响应是否正常。</p>
+              <div class="endpoint">
+                <span class="method get">GET</span>
+                <span>https://api.example.com/scheer/me</span>
+              </div>
+              <p>返回任意合法 JSON 即可。扩展只检查 HTTP 2xx、非空响应体与合法 JSON。</p>
+              <div class="code-block">
+                <button class="copy" type="button" data-copy>复制</button>
+                <pre><code>{
+  "id": "user-id",
+  "name": "Current User"
+}</code></pre>
+              </div>
+            </section>
+
+            <section class="doc-section" id="api-config">
+              <h3>扩展配置示例</h3>
+              <p>配置页支持直接粘贴 JSON 或 Base64 编码的同等 JSON。</p>
+              <div class="code-block">
+                <button class="copy" type="button" data-copy>复制</button>
+                <pre><code>{
+  "server": {
+    "base": "https://api.example.com",
+    "create_product_endpoint": "/scheer/products",
+    "current_user_endpoint": "/scheer/me",
+    "secret": "replace-with-your-token",
+    "secret_header": "Authorization",
+    "secret_prefix": "Bearer",
+    "timeout_ms": 30000
+  }
+}</code></pre>
+              </div>
+              <div class="steps">
+                <div class="step">
+                  <b>STEP 01</b>
+                  <strong>实现两个接口</strong>
+                  <p>按上方约定接收商品并返回创建结果。</p>
+                </div>
+                <div class="step">
+                  <b>STEP 02</b>
+                  <strong>导入并测试配置</strong>
+                  <p>在 Options 中保存 Token，点击“测试配置”。</p>
+                </div>
+                <div class="step">
+                  <b>STEP 03</b>
+                  <strong>打开商品页</strong>
+                  <p>点击扩展图标，确认平台后创建商品。</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="container cta">
+        <div>
+          <h2>你的商品数据，不需要绕路。</h2>
+          <p>查看源码、扩展平台采集器，或直接按文档接入现有后端。</p>
+        </div>
+        <a class="button" href="https://github.com/arukas/scheer" target="_blank" rel="noreferrer"
+          >前往 GitHub ↗</a
+        >
+      </section>
+    </main>
+
+    <footer>
+      <div class="container footer-inner">
+        <span>© 2026 Scheer Contributors · MIT License</span>
+        <span><a href="/privacy/">隐私声明</a> · 浏览器内采集 · 自有后端</span>
+      </div>
+    </footer>
+
+    <script>
+      document.querySelectorAll('[data-copy]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          await navigator.clipboard.writeText(button.nextElementSibling.innerText);
+          button.textContent = '已复制';
+          setTimeout(() => (button.textContent = '复制'), 1200);
+        });
+      });
+    </script>
+  </body>
+</html>
