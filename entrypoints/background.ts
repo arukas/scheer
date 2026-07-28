@@ -15,6 +15,7 @@ import { onMessage } from '../src/shared/messaging';
 import { getPageStatus } from '../src/shared/platform';
 import type { PageStatus } from '../src/shared/platform';
 import { submitCreateProduct, testBackendConnection } from '../src/shared/api';
+import { t } from '../src/shared/i18n';
 
 export default defineBackground(() => {
   const log = createLogger('background/main');
@@ -53,7 +54,7 @@ export default defineBackground(() => {
               url: '',
               platform: null,
               canExtract: false,
-              reason: '获取当前标签页失败',
+              reason: t('activeTabFailed'),
             });
             break;
           }
@@ -66,7 +67,7 @@ export default defineBackground(() => {
             url: '',
             platform: null,
             canExtract: false,
-            reason: '获取当前标签页失败',
+            reason: t('activeTabFailed'),
           });
         }
         break;

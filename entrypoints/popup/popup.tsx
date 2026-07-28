@@ -5,7 +5,10 @@ import type { CreateProductResponse } from '../../src/shared/messaging';
 import type { Config } from '../../src/shared/schema';
 import type { PageStatus } from '../../src/shared/platform';
 import { resolveEndpoint } from '../../src/shared/api';
+import { localizeDocument, t } from '../../src/shared/i18n';
 import './style.css';
+
+localizeDocument('popupDocumentTitle');
 
 function Popup() {
   const [status, setStatus] = useState<PageStatus | null>(null);
@@ -107,41 +110,41 @@ function Popup() {
         <h1 className="popup-title">Scheer</h1>
         <div className="popup-header-actions">
           <span className={`popup-badge ${configReady ? 'ready' : 'not-ready'}`}>
-            {configReady ? '已配置' : '未配置'}
+            {t(configReady ? 'configured' : 'notConfigured')}
           </span>
-          <button className="popup-btn icon" onClick={openOptions} title="打开配置">
+          <button className="popup-btn icon" onClick={openOptions} title={t('openSettings')}>
             ⚙️
           </button>
         </div>
       </header>
 
       <section className="popup-section">
-        <h2 className="popup-section-title">当前页面</h2>
+        <h2 className="popup-section-title">{t('currentPage')}</h2>
         {status ? (
           <div className="popup-status">
             <div className="popup-row">
-              <span className="popup-label">平台</span>
-              <span className="popup-value">{status.platform ?? '未知'}</span>
+              <span className="popup-label">{t('platform')}</span>
+              <span className="popup-value">{status.platform ?? t('unknown')}</span>
             </div>
             <div className="popup-row">
-              <span className="popup-label">可抓状态</span>
+              <span className="popup-label">{t('extractionStatus')}</span>
               <span className={`popup-value ${status.canExtract ? 'success' : 'warning'}`}>
-                {status.canExtract ? '可采集' : '不可采集'}
+                {t(status.canExtract ? 'extractable' : 'notExtractable')}
               </span>
             </div>
             <div className="popup-row">
-              <span className="popup-label">原因</span>
+              <span className="popup-label">{t('reason')}</span>
               <span className="popup-value muted">{status.reason}</span>
             </div>
           </div>
         ) : (
-          <div className="popup-loading">加载中…</div>
+          <div className="popup-loading">{t('loading')}</div>
         )}
         {hasHostPermission === false && (
           <div className="popup-permission">
-            <p className="popup-permission-text">需要授权访问网站数据，才能识别商品页并采集。</p>
+            <p className="popup-permission-text">{t('permissionDescription')}</p>
             <button className="popup-btn full-width" onClick={requestHostPermission}>
-              授权访问所有网站
+              {t('grantAllSites')}
             </button>
           </div>
         )}
@@ -153,27 +156,29 @@ function Popup() {
           onClick={createProduct}
           disabled={!canCreate || submitting}
         >
-          {submitting ? '提交中…' : '创建商品'}
+          {t(submitting ? 'submitting' : 'createProduct')}
         </button>
-        {!configReady && (
-          <p className="popup-hint">请先在 Options 中配置后端域名、接口地址和密钥。</p>
-        )}
+        {!configReady && <p className="popup-hint">{t('configureFirstHint')}</p>}
         {configReady && !hasHostPermission && (
-          <p className="popup-hint">请点击上方「授权访问所有网站」按钮授予页面访问权限。</p>
+          <p className="popup-hint">{t('grantPermissionHint')}</p>
         )}
         {configReady && hasHostPermission && !status?.canExtract && (
-          <p className="popup-hint">当前页面暂不支持采集。</p>
+          <p className="popup-hint">{t('unsupportedPageHint')}</p>
         )}
         {submitResult && (
           <div className={`popup-result ${submitResult.success ? 'success' : 'error'}`}>
             {submitResult.success ? (
               <>
-                <p>创建成功 ✅</p>
-                <p className="popup-result-detail">商品 ID：{submitResult.data.product_id}</p>
-                <p className="popup-result-detail">日志 ID：{submitResult.data.log_id}</p>
+                <p>{t('createSuccess')}</p>
+                <p className="popup-result-detail">
+                  {t('productId', String(submitResult.data.product_id))}
+                </p>
+                <p className="popup-result-detail">
+                  {t('logId', String(submitResult.data.log_id))}
+                </p>
               </>
             ) : (
-              <p>创建失败：{submitResult.error}</p>
+              <p>{t('createFailed', submitResult.error)}</p>
             )}
           </div>
         )}

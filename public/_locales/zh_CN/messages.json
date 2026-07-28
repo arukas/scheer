@@ -1,0 +1,114 @@
+{
+  "extensionName": { "message": "Scheer 商品助手" },
+  "extensionDescription": {
+    "message": "在商品页整理可见商品信息，并发送到你配置的后端服务。"
+  },
+  "popupDocumentTitle": { "message": "Scheer" },
+  "optionsDocumentTitle": { "message": "Scheer 配置" },
+  "configured": { "message": "已配置" },
+  "notConfigured": { "message": "未配置" },
+  "openSettings": { "message": "打开配置" },
+  "currentPage": { "message": "当前页面" },
+  "platform": { "message": "平台" },
+  "unknown": { "message": "未知" },
+  "extractionStatus": { "message": "采集状态" },
+  "extractable": { "message": "可采集" },
+  "notExtractable": { "message": "不可采集" },
+  "reason": { "message": "原因" },
+  "loading": { "message": "加载中…" },
+  "permissionDescription": {
+    "message": "需要授权访问网站数据，才能识别商品页并采集。"
+  },
+  "grantAllSites": { "message": "授权访问所有网站" },
+  "submitting": { "message": "提交中…" },
+  "createProduct": { "message": "创建商品" },
+  "configureFirstHint": {
+    "message": "请先在配置页中填写后端域名、接口地址和密钥。"
+  },
+  "grantPermissionHint": {
+    "message": "请点击上方“授权访问所有网站”按钮授予页面访问权限。"
+  },
+  "unsupportedPageHint": { "message": "当前页面暂不支持采集。" },
+  "createSuccess": { "message": "创建成功 ✅" },
+  "productId": { "message": "商品 ID：$1" },
+  "logId": { "message": "日志 ID：$1" },
+  "createFailed": { "message": "创建失败：$1" },
+  "unsupportedPlatform": { "message": "未识别到受支持的平台" },
+  "platformRecognized": { "message": "平台已识别，等待用户触发采集" },
+  "pageOutOfScope": { "message": "当前页面不在支持的采集范围（需 https 商品页）" },
+  "activeTabFailed": { "message": "获取当前标签页失败" },
+  "detectionFailed": { "message": "探测失败：$1" },
+  "optionsTitle": { "message": "Scheer 配置" },
+  "serverSecretRequired": { "message": "后端密钥不能为空" },
+  "serverEndpointRequired": {
+    "message": "后端域名与创建商品接口地址至少填写一项"
+  },
+  "configSaved": { "message": "配置已保存" },
+  "saveFailed": { "message": "保存失败：$1" },
+  "requestingBackend": { "message": "正在请求后端…" },
+  "connectionSuccess": { "message": "连接成功：$1" },
+  "connectionFailed": { "message": "连接失败：$1" },
+  "testFailed": { "message": "测试失败：$1" },
+  "pasteConfigRequired": { "message": "请粘贴配置内容" },
+  "importInvalidJson": {
+    "message": "导入失败：请输入合法 JSON 或 Base64 编码的 JSON"
+  },
+  "importMustBeObject": { "message": "导入失败：配置必须是 JSON 对象" },
+  "importServerMustBeObject": { "message": "导入失败：server 必须是对象" },
+  "importSecretRequired": { "message": "导入失败：后端密钥不能为空" },
+  "importEndpointRequired": {
+    "message": "导入失败：后端域名与创建商品接口地址至少填写一项"
+  },
+  "importSaved": { "message": "配置已导入并保存" },
+  "importFailed": { "message": "导入失败：$1" },
+  "debugEnabled": { "message": "Debug 模式已开启" },
+  "debugDisabled": { "message": "Debug 模式已关闭" },
+  "debugToggleFailed": { "message": "切换 Debug 模式失败：$1" },
+  "logsCleared": { "message": "调试日志已清除" },
+  "disableDebug": { "message": "关闭 Debug 模式" },
+  "enableDebug": { "message": "开启 Debug 模式" },
+  "extensionManagement": { "message": "扩展管理" },
+  "remoteService": { "message": "远端服务" },
+  "backendBase": { "message": "后端域名" },
+  "backendBaseHint": {
+    "message": "接口为相对 URI 时会与此域名拼接；为完整 URL 时则直接请求该地址。"
+  },
+  "createProductEndpoint": { "message": "创建商品接口地址" },
+  "currentUserEndpoint": { "message": "当前用户信息接口地址" },
+  "backendSecret": { "message": "后端密钥" },
+  "secretStorageHint": {
+    "message": "凭据以明文保存在本地 chrome.storage.local 中，不上传任何服务器。"
+  },
+  "tokenHeader": { "message": "Token Header 名" },
+  "tokenHeaderHint": {
+    "message": "默认 Authorization；如需使用 X-Api-Key 等请修改此处。"
+  },
+  "tokenPrefix": { "message": "Token 前缀" },
+  "tokenPrefixHint": {
+    "message": "默认 Bearer；不需要前缀时可清空，例如直接发送密钥本身。"
+  },
+  "debugLogs": { "message": "Debug 日志" },
+  "enableDebugMode": { "message": "启用 Debug 模式" },
+  "persistLogs": { "message": "保存调试日志到本地" },
+  "maxLogEntries": { "message": "最大日志条数" },
+  "logLevel": { "message": "日志留存等级" },
+  "logLevelHint": {
+    "message": "只保留所选等级及以上的日志。例如选 WARN 时只保留 warn/error。"
+  },
+  "clearLogs": { "message": "清除日志" },
+  "exportLogs": { "message": "导出日志" },
+  "localLogCount": { "message": "当前本地日志：$1 条" },
+  "actions": { "message": "操作" },
+  "importConfig": { "message": "导入配置" },
+  "pasteConfig": { "message": "粘贴配置" },
+  "importPlaceholder": {
+    "message": "{ \"server\": { \"base\": \"https://api.example.com\", \"secret\": \"sk-xxx\" } } 或 Base64 编码的同等 JSON"
+  },
+  "importHint": {
+    "message": "支持直接粘贴 JSON，或粘贴 Base64 编码的 JSON。未提供的字段会保持当前值。"
+  },
+  "importAndSave": { "message": "导入并保存" },
+  "cancel": { "message": "取消" },
+  "testConfig": { "message": "测试配置" },
+  "save": { "message": "保存" }
+}

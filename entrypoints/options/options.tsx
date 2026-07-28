@@ -4,7 +4,10 @@ import { sendMessage } from '../../src/shared/messaging';
 import type { Config, DebugLogs } from '../../src/shared/schema';
 import { DEBUG_LOG_LEVELS } from '../../src/shared/schema';
 import { mergeImportedConfig } from '../../src/shared/storage';
+import { localizeDocument, t } from '../../src/shared/i18n';
 import './style.css';
+
+localizeDocument('optionsDocumentTitle');
 
 function Options() {
   const [config, setConfig] = useState<Config | null>(null);
@@ -28,20 +31,20 @@ function Options() {
     if (!config) return;
 
     if (!config.server.secret.trim()) {
-      setStatus('后端密钥不能为空');
+      setStatus(t('serverSecretRequired'));
       return;
     }
     if (!config.server.base.trim() && !config.server.create_product_endpoint.trim()) {
-      setStatus('后端域名与创建商品接口地址至少填写一项');
+      setStatus(t('serverEndpointRequired'));
       return;
     }
 
     try {
       await sendMessage({ type: 'SET_CONFIG', payload: { config } });
-      setStatus('配置已保存');
+      setStatus(t('configSaved'));
       await load();
     } catch (err) {
-      setStatus(`保存失败：${(err as Error).message}`);
+      setStatus(t('saveFailed', (err as Error).message));
     }
   }
 
@@ -61,19 +64,19 @@ function Options() {
 
   async function testConfig() {
     if (!config) return;
-    setStatus('正在请求后端…');
+    setStatus(t('requestingBackend'));
     try {
       const result = await sendMessage<
         { success: true; data: unknown } | { success: false; error: string }
       >({ type: 'TEST_CONFIG', payload: { config } });
       if (result.success) {
         const preview = JSON.stringify(result.data).slice(0, 240);
-        setStatus(`连接成功：${preview}`);
+        setStatus(t('connectionSuccess', preview));
       } else {
-        setStatus(`连接失败：${result.error}`);
+        setStatus(t('connectionFailed', result.error));
       }
     } catch (err) {
-      setStatus(`测试失败：${(err as Error).message}`);
+      setStatus(t('testFailed', (err as Error).message));
     }
   }
 
@@ -90,7 +93,7 @@ function Options() {
     if (!config) return;
     const raw = importText.trim();
     if (!raw) {
-      setStatus('请粘贴配置内容');
+      setStatus(t('pasteConfigRequired'));
       return;
     }
 
@@ -103,20 +106,20 @@ function Options() {
         const decoded = decodeBase64(cleaned);
         parsed = JSON.parse(decoded);
       } catch {
-        setStatus('导入失败：请输入合法 JSON 或 Base64 编码的 JSON');
+        setStatus(t('importInvalidJson'));
         return;
       }
     }
 
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      setStatus('导入失败：配置必须是 JSON 对象');
+      setStatus(t('importMustBeObject'));
       return;
     }
 
     if ((parsed as Partial<Config>).server !== undefined) {
       const server = (parsed as Partial<Config>).server;
       if (typeof server !== 'object' || server === null || Array.isArray(server)) {
-        setStatus('导入失败：server 必须是对象');
+        setStatus(t('importServerMustBeObject'));
         return;
       }
     }
@@ -124,22 +127,22 @@ function Options() {
     const merged = mergeImportedConfig(config, parsed as Partial<Config>);
 
     if (!merged.server.secret.trim()) {
-      setStatus('导入失败：后端密钥不能为空');
+      setStatus(t('importSecretRequired'));
       return;
     }
     if (!merged.server.base.trim() && !merged.server.create_product_endpoint.trim()) {
-      setStatus('导入失败：后端域名与创建商品接口地址至少填写一项');
+      setStatus(t('importEndpointRequired'));
       return;
     }
 
     try {
       await sendMessage({ type: 'SET_CONFIG', payload: { config: merged } });
-      setStatus('配置已导入并保存');
+      setStatus(t('importSaved'));
       setImportText('');
       setShowImport(false);
       await load();
     } catch (err) {
-      setStatus(`导入失败：${(err as Error).message}`);
+      setStatus(t('importFailed', (err as Error).message));
     }
   }
 
@@ -152,16 +155,16 @@ function Options() {
     try {
       await sendMessage({ type: 'SET_CONFIG', payload: { config: nextConfig } });
       await load();
-      setStatus(`Debug 模式已${nextConfig.debug.enabled ? '开启' : '关闭'}`);
+      setStatus(t(nextConfig.debug.enabled ? 'debugEnabled' : 'debugDisabled'));
     } catch (err) {
-      setStatus(`切换 Debug 模式失败：${(err as Error).message}`);
+      setStatus(t('debugToggleFailed', (err as Error).message));
     }
   }
 
   async function clearLogs() {
     await sendMessage({ type: 'CLEAR_DEBUG_LOGS' });
     await load();
-    setStatus('调试日志已清除');
+    setStatus(t('logsCleared'));
   }
 
   async function exportLogs() {
@@ -182,28 +185,28 @@ function Options() {
   }
 
   if (!config) {
-    return <div className="options-loading">加载中…</div>;
+    return <div className="options-loading">{t('loading')}</div>;
   }
 
   return (
     <div className="options">
       <header className="options-header">
-        <h1 className="options-title">Scheer 配置</h1>
+        <h1 className="options-title">{t('optionsTitle')}</h1>
         <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
           <button className="options-btn secondary" onClick={toggleDebugEnabled}>
-            {config.debug.enabled ? '关闭 Debug 模式' : '开启 Debug 模式'}
+            {t(config.debug.enabled ? 'disableDebug' : 'enableDebug')}
           </button>
           <button className="options-btn secondary" onClick={openExtensionManagement}>
-            扩展管理
+            {t('extensionManagement')}
           </button>
         </div>
       </header>
 
       <section className="options-section">
-        <h2 className="options-section-title">远端服务</h2>
+        <h2 className="options-section-title">{t('remoteService')}</h2>
         <div className="options-field">
           <label className="options-label" htmlFor="base">
-            后端域名
+            {t('backendBase')}
           </label>
           <input
             id="base"
@@ -213,13 +216,11 @@ function Options() {
             onChange={(e) => updateServer({ base: e.target.value })}
             placeholder="https://api.example.com"
           />
-          <p className="options-hint">
-            当下方接口填写相对 URI 时，会与此域名拼接；填写完整 URL 时则直接请求该地址。
-          </p>
+          <p className="options-hint">{t('backendBaseHint')}</p>
         </div>
         <div className="options-field">
           <label className="options-label" htmlFor="create-product-endpoint">
-            创建商品接口地址
+            {t('createProductEndpoint')}
           </label>
           <input
             id="create-product-endpoint"
@@ -232,7 +233,7 @@ function Options() {
         </div>
         <div className="options-field">
           <label className="options-label" htmlFor="current-user-endpoint">
-            当前用户信息接口地址
+            {t('currentUserEndpoint')}
           </label>
           <input
             id="current-user-endpoint"
@@ -245,7 +246,7 @@ function Options() {
         </div>
         <div className="options-field">
           <label className="options-label" htmlFor="secret">
-            后端密钥
+            {t('backendSecret')}
           </label>
           <input
             id="secret"
@@ -255,13 +256,11 @@ function Options() {
             onChange={(e) => updateServer({ secret: e.target.value })}
             placeholder="Bearer token"
           />
-          <p className="options-hint">
-            凭据以明文保存在本地 chrome.storage.local 中，不上传任何服务器。
-          </p>
+          <p className="options-hint">{t('secretStorageHint')}</p>
         </div>
         <div className="options-field">
           <label className="options-label" htmlFor="secret-header">
-            Token Header 名
+            {t('tokenHeader')}
           </label>
           <input
             id="secret-header"
@@ -271,11 +270,11 @@ function Options() {
             onChange={(e) => updateServer({ secret_header: e.target.value || undefined })}
             placeholder="Authorization"
           />
-          <p className="options-hint">默认 Authorization；如需使用 X-Api-Key 等请修改此处。</p>
+          <p className="options-hint">{t('tokenHeaderHint')}</p>
         </div>
         <div className="options-field">
           <label className="options-label" htmlFor="secret-prefix">
-            Token 前缀
+            {t('tokenPrefix')}
           </label>
           <input
             id="secret-prefix"
@@ -285,13 +284,13 @@ function Options() {
             onChange={(e) => updateServer({ secret_prefix: e.target.value || undefined })}
             placeholder="Bearer"
           />
-          <p className="options-hint">默认 Bearer；不需要前缀时可清空，例如直接发送密钥本身。</p>
+          <p className="options-hint">{t('tokenPrefixHint')}</p>
         </div>
       </section>
 
       {config.debug.enabled && (
         <section className="options-section">
-          <h2 className="options-section-title">Debug 日志</h2>
+          <h2 className="options-section-title">{t('debugLogs')}</h2>
           <div className="options-row">
             <label className="options-switch">
               <input
@@ -299,7 +298,7 @@ function Options() {
                 checked={config.debug.enabled}
                 onChange={(e) => updateDebug({ enabled: e.target.checked })}
               />
-              <span>启用 Debug 模式</span>
+              <span>{t('enableDebugMode')}</span>
             </label>
           </div>
           <div className="options-row">
@@ -309,12 +308,12 @@ function Options() {
                 checked={config.debug.persist}
                 onChange={(e) => updateDebug({ persist: e.target.checked })}
               />
-              <span>保存调试日志到本地</span>
+              <span>{t('persistLogs')}</span>
             </label>
           </div>
           <div className="options-field">
             <label className="options-label" htmlFor="maxEntries">
-              最大日志条数
+              {t('maxLogEntries')}
             </label>
             <input
               id="maxEntries"
@@ -328,7 +327,7 @@ function Options() {
           </div>
           <div className="options-field">
             <label className="options-label" htmlFor="debugLevel">
-              日志留存等级
+              {t('logLevel')}
             </label>
             <select
               id="debugLevel"
@@ -342,70 +341,66 @@ function Options() {
                 </option>
               ))}
             </select>
-            <p className="options-hint">
-              只保留所选等级及以上的日志。例如选 WARN 时只保留 warn/error。
-            </p>
+            <p className="options-hint">{t('logLevelHint')}</p>
           </div>
           <div className="options-actions">
             <button className="options-btn secondary" onClick={clearLogs}>
-              清除日志
+              {t('clearLogs')}
             </button>
             <button
               className="options-btn secondary"
               onClick={exportLogs}
               disabled={!logs || logs.entries.length === 0}
             >
-              导出日志
+              {t('exportLogs')}
             </button>
           </div>
           {logs && logs.persist && (
-            <p className="options-hint">当前本地日志：{logs.entries.length} 条</p>
+            <p className="options-hint">{t('localLogCount', String(logs.entries.length))}</p>
           )}
         </section>
       )}
 
       <section className="options-section">
-        <h2 className="options-section-title">操作</h2>
+        <h2 className="options-section-title">{t('actions')}</h2>
         {!showImport ? (
           <div className="options-actions">
             <button className="options-btn secondary" onClick={() => setShowImport(true)}>
-              导入配置
+              {t('importConfig')}
             </button>
           </div>
         ) : (
           <>
             <div className="options-field">
               <label className="options-label" htmlFor="import-config">
-                粘贴配置
+                {t('pasteConfig')}
               </label>
               <textarea
                 id="import-config"
                 className="options-input textarea"
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
-                placeholder='{ "server": { "base": "https://api.example.com", "secret": "sk-xxx" } } 或 Base64 编码的同等 JSON'
+                placeholder={t('importPlaceholder')}
                 rows={8}
               />
-              <p className="options-hint">
-                支持直接粘贴 JSON，或粘贴 Base64 编码的 JSON。未提供的字段会保持当前值。
-              </p>
+              <p className="options-hint">{t('importHint')}</p>
             </div>
             <div className="options-actions">
               <button className="options-btn" onClick={importConfig}>
-                导入并保存
+                {t('importAndSave')}
               </button>
               <button className="options-btn secondary" onClick={() => setShowImport(false)}>
-                取消
+                {t('cancel')}
               </button>
             </div>
           </>
         )}
         <div className="options-actions">
           <button className="options-btn secondary" onClick={testConfig}>
-            测试配置
+            {t('testConfig')}
           </button>
           <button className="options-btn" onClick={save}>
-            保存
+            {t('save')}
           </button>
         </div>
         {status && <p className="options-status">{status}</p>}

@@ -4,6 +4,7 @@ import { getPageStatus } from '../src/shared/platform';
 import { onMessage } from '../src/shared/messaging';
 import { extractProduct } from '../src/shared/extract';
 import type { Config } from '../src/shared/schema';
+import { t } from '../src/shared/i18n';
 
 const INJECTED_CONFIG_ID = 'scheer-extension-config';
 
@@ -60,7 +61,7 @@ export default defineContentScript({
             url: location.href,
             platform: null,
             canExtract: false,
-            reason: `探测失败：${error}`,
+            reason: t('detectionFailed', error),
           });
         }
         return;

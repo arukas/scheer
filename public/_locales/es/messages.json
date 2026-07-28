@@ -1,0 +1,124 @@
+{
+  "extensionName": { "message": "Asistente de productos Scheer" },
+  "extensionDescription": {
+    "message": "Recopila información visible del producto y envíala al servicio backend configurado."
+  },
+  "popupDocumentTitle": { "message": "Scheer" },
+  "optionsDocumentTitle": { "message": "Configuración de Scheer" },
+  "configured": { "message": "Configurado" },
+  "notConfigured": { "message": "Sin configurar" },
+  "openSettings": { "message": "Abrir configuración" },
+  "currentPage": { "message": "Página actual" },
+  "platform": { "message": "Plataforma" },
+  "unknown": { "message": "Desconocida" },
+  "extractionStatus": { "message": "Estado de extracción" },
+  "extractable": { "message": "Disponible" },
+  "notExtractable": { "message": "No disponible" },
+  "reason": { "message": "Motivo" },
+  "loading": { "message": "Cargando…" },
+  "permissionDescription": {
+    "message": "Se necesita acceso al sitio para identificar y recopilar información del producto."
+  },
+  "grantAllSites": { "message": "Permitir acceso a todos los sitios" },
+  "submitting": { "message": "Enviando…" },
+  "createProduct": { "message": "Crear producto" },
+  "configureFirstHint": {
+    "message": "Configura primero la URL, los endpoints y el secreto del backend."
+  },
+  "grantPermissionHint": {
+    "message": "Usa “Permitir acceso a todos los sitios” para conceder acceso a la página."
+  },
+  "unsupportedPageHint": { "message": "Esta página no es compatible actualmente." },
+  "createSuccess": { "message": "Producto creado ✅" },
+  "productId": { "message": "ID del producto: $1" },
+  "logId": { "message": "ID del registro: $1" },
+  "createFailed": { "message": "Error al crear: $1" },
+  "unsupportedPlatform": { "message": "No se detectó una plataforma compatible" },
+  "platformRecognized": {
+    "message": "Plataforma detectada; lista para recopilar datos"
+  },
+  "pageOutOfScope": {
+    "message": "La página está fuera del ámbito compatible (se requiere una página de producto HTTPS)"
+  },
+  "activeTabFailed": { "message": "No se pudo acceder a la pestaña actual" },
+  "detectionFailed": { "message": "Error de detección: $1" },
+  "optionsTitle": { "message": "Configuración de Scheer" },
+  "serverSecretRequired": { "message": "El secreto del backend es obligatorio" },
+  "serverEndpointRequired": {
+    "message": "Introduce al menos una URL de backend o un endpoint para crear productos"
+  },
+  "configSaved": { "message": "Configuración guardada" },
+  "saveFailed": { "message": "Error al guardar: $1" },
+  "requestingBackend": { "message": "Contactando con el backend…" },
+  "connectionSuccess": { "message": "Conexión correcta: $1" },
+  "connectionFailed": { "message": "Error de conexión: $1" },
+  "testFailed": { "message": "Error en la prueba: $1" },
+  "pasteConfigRequired": { "message": "Pega el contenido de la configuración" },
+  "importInvalidJson": {
+    "message": "Error al importar: introduce JSON válido o JSON codificado en Base64"
+  },
+  "importMustBeObject": {
+    "message": "Error al importar: la configuración debe ser un objeto JSON"
+  },
+  "importServerMustBeObject": {
+    "message": "Error al importar: server debe ser un objeto"
+  },
+  "importSecretRequired": {
+    "message": "Error al importar: el secreto del backend es obligatorio"
+  },
+  "importEndpointRequired": {
+    "message": "Error al importar: introduce una URL de backend o un endpoint para crear productos"
+  },
+  "importSaved": { "message": "Configuración importada y guardada" },
+  "importFailed": { "message": "Error al importar: $1" },
+  "debugEnabled": { "message": "Modo Debug activado" },
+  "debugDisabled": { "message": "Modo Debug desactivado" },
+  "debugToggleFailed": { "message": "No se pudo cambiar el modo Debug: $1" },
+  "logsCleared": { "message": "Registros de depuración borrados" },
+  "disableDebug": { "message": "Desactivar modo Debug" },
+  "enableDebug": { "message": "Activar modo Debug" },
+  "extensionManagement": { "message": "Administrar extensión" },
+  "remoteService": { "message": "Servicio remoto" },
+  "backendBase": { "message": "URL del backend" },
+  "backendBaseHint": {
+    "message": "Los URI relativos se unen a esta URL; las URL completas se solicitan directamente."
+  },
+  "createProductEndpoint": { "message": "Endpoint para crear productos" },
+  "currentUserEndpoint": { "message": "Endpoint del usuario actual" },
+  "backendSecret": { "message": "Secreto del backend" },
+  "secretStorageHint": {
+    "message": "Las credenciales se guardan como texto sin formato en chrome.storage.local y no se suben a otros servidores."
+  },
+  "tokenHeader": { "message": "Cabecera del token" },
+  "tokenHeaderHint": {
+    "message": "El valor predeterminado es Authorization. Cámbialo para usar X-Api-Key u otra cabecera."
+  },
+  "tokenPrefix": { "message": "Prefijo del token" },
+  "tokenPrefixHint": {
+    "message": "El valor predeterminado es Bearer. Bórralo para enviar el secreto sin prefijo."
+  },
+  "debugLogs": { "message": "Registros de depuración" },
+  "enableDebugMode": { "message": "Activar modo Debug" },
+  "persistLogs": { "message": "Guardar registros localmente" },
+  "maxLogEntries": { "message": "Máximo de registros" },
+  "logLevel": { "message": "Nivel de conservación" },
+  "logLevelHint": {
+    "message": "Solo se guardan los registros de este nivel o superior. WARN guarda warn/error."
+  },
+  "clearLogs": { "message": "Borrar registros" },
+  "exportLogs": { "message": "Exportar registros" },
+  "localLogCount": { "message": "Registros locales: $1" },
+  "actions": { "message": "Acciones" },
+  "importConfig": { "message": "Importar configuración" },
+  "pasteConfig": { "message": "Pegar configuración" },
+  "importPlaceholder": {
+    "message": "{ \"server\": { \"base\": \"https://api.example.com\", \"secret\": \"sk-xxx\" } } o el JSON equivalente codificado en Base64"
+  },
+  "importHint": {
+    "message": "Pega JSON o JSON codificado en Base64. Los campos omitidos mantienen sus valores actuales."
+  },
+  "importAndSave": { "message": "Importar y guardar" },
+  "cancel": { "message": "Cancelar" },
+  "testConfig": { "message": "Probar configuración" },
+  "save": { "message": "Guardar" }
+}

@@ -11,6 +11,7 @@
 
 import type { PlatformKey } from './schema';
 import { createLogger } from './logger';
+import { t } from './i18n';
 
 export interface PageStatus {
   url: string;
@@ -341,10 +342,10 @@ export async function checkCanExtract(
   platform: PlatformKey | null
 ): Promise<{ canExtract: boolean; reason: string }> {
   if (!platform) {
-    return { canExtract: false, reason: '未识别到受支持的平台' };
+    return { canExtract: false, reason: t('unsupportedPlatform') };
   }
   // 占位：默认认为可抓，后续由具体抓取器探测 DOM/API/注水对象
-  return { canExtract: true, reason: '平台已识别，等待用户触发采集' };
+  return { canExtract: true, reason: t('platformRecognized') };
 }
 
 export async function getPageStatus(url: string, html?: string): Promise<PageStatus> {
@@ -353,7 +354,7 @@ export async function getPageStatus(url: string, html?: string): Promise<PageSta
       url,
       platform: null,
       canExtract: false,
-      reason: '当前页面不在支持的采集范围（需 https 商品页）',
+      reason: t('pageOutOfScope'),
     };
   }
 

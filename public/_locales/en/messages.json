@@ -1,0 +1,124 @@
+{
+  "extensionName": { "message": "Scheer Product Assistant" },
+  "extensionDescription": {
+    "message": "Collect visible product information and send it to your configured backend service."
+  },
+  "popupDocumentTitle": { "message": "Scheer" },
+  "optionsDocumentTitle": { "message": "Scheer Settings" },
+  "configured": { "message": "Configured" },
+  "notConfigured": { "message": "Not configured" },
+  "openSettings": { "message": "Open settings" },
+  "currentPage": { "message": "Current page" },
+  "platform": { "message": "Platform" },
+  "unknown": { "message": "Unknown" },
+  "extractionStatus": { "message": "Extraction status" },
+  "extractable": { "message": "Available" },
+  "notExtractable": { "message": "Unavailable" },
+  "reason": { "message": "Reason" },
+  "loading": { "message": "Loading…" },
+  "permissionDescription": {
+    "message": "Site access is required to identify and collect product information."
+  },
+  "grantAllSites": { "message": "Allow access to all sites" },
+  "submitting": { "message": "Submitting…" },
+  "createProduct": { "message": "Create product" },
+  "configureFirstHint": {
+    "message": "Configure the backend URL, endpoints, and secret in Settings first."
+  },
+  "grantPermissionHint": {
+    "message": "Use “Allow access to all sites” above to grant page access."
+  },
+  "unsupportedPageHint": { "message": "This page is not currently supported." },
+  "createSuccess": { "message": "Created successfully ✅" },
+  "productId": { "message": "Product ID: $1" },
+  "logId": { "message": "Log ID: $1" },
+  "createFailed": { "message": "Creation failed: $1" },
+  "unsupportedPlatform": { "message": "No supported platform was detected" },
+  "platformRecognized": {
+    "message": "Platform detected; ready to collect when requested"
+  },
+  "pageOutOfScope": {
+    "message": "This page is outside the supported scope (an HTTPS product page is required)"
+  },
+  "activeTabFailed": { "message": "Could not access the current tab" },
+  "detectionFailed": { "message": "Detection failed: $1" },
+  "optionsTitle": { "message": "Scheer Settings" },
+  "serverSecretRequired": { "message": "Backend secret is required" },
+  "serverEndpointRequired": {
+    "message": "Enter at least a backend URL or a create-product endpoint"
+  },
+  "configSaved": { "message": "Settings saved" },
+  "saveFailed": { "message": "Save failed: $1" },
+  "requestingBackend": { "message": "Contacting backend…" },
+  "connectionSuccess": { "message": "Connection successful: $1" },
+  "connectionFailed": { "message": "Connection failed: $1" },
+  "testFailed": { "message": "Test failed: $1" },
+  "pasteConfigRequired": { "message": "Paste the configuration content" },
+  "importInvalidJson": {
+    "message": "Import failed: enter valid JSON or Base64-encoded JSON"
+  },
+  "importMustBeObject": {
+    "message": "Import failed: the configuration must be a JSON object"
+  },
+  "importServerMustBeObject": {
+    "message": "Import failed: server must be an object"
+  },
+  "importSecretRequired": {
+    "message": "Import failed: the backend secret is required"
+  },
+  "importEndpointRequired": {
+    "message": "Import failed: enter at least a backend URL or a create-product endpoint"
+  },
+  "importSaved": { "message": "Configuration imported and saved" },
+  "importFailed": { "message": "Import failed: $1" },
+  "debugEnabled": { "message": "Debug mode enabled" },
+  "debugDisabled": { "message": "Debug mode disabled" },
+  "debugToggleFailed": { "message": "Could not switch Debug mode: $1" },
+  "logsCleared": { "message": "Debug logs cleared" },
+  "disableDebug": { "message": "Disable Debug mode" },
+  "enableDebug": { "message": "Enable Debug mode" },
+  "extensionManagement": { "message": "Manage extension" },
+  "remoteService": { "message": "Remote service" },
+  "backendBase": { "message": "Backend URL" },
+  "backendBaseHint": {
+    "message": "Relative endpoint URIs are joined to this URL; complete URLs are requested directly."
+  },
+  "createProductEndpoint": { "message": "Create-product endpoint" },
+  "currentUserEndpoint": { "message": "Current-user endpoint" },
+  "backendSecret": { "message": "Backend secret" },
+  "secretStorageHint": {
+    "message": "Credentials are stored as plain text in local chrome.storage.local and are not uploaded elsewhere."
+  },
+  "tokenHeader": { "message": "Token header" },
+  "tokenHeaderHint": {
+    "message": "Defaults to Authorization. Change it to use X-Api-Key or another header."
+  },
+  "tokenPrefix": { "message": "Token prefix" },
+  "tokenPrefixHint": {
+    "message": "Defaults to Bearer. Clear it to send the secret without a prefix."
+  },
+  "debugLogs": { "message": "Debug logs" },
+  "enableDebugMode": { "message": "Enable Debug mode" },
+  "persistLogs": { "message": "Save debug logs locally" },
+  "maxLogEntries": { "message": "Maximum log entries" },
+  "logLevel": { "message": "Log retention level" },
+  "logLevelHint": {
+    "message": "Only logs at or above this level are kept. WARN keeps warn/error, for example."
+  },
+  "clearLogs": { "message": "Clear logs" },
+  "exportLogs": { "message": "Export logs" },
+  "localLogCount": { "message": "Local logs: $1 entries" },
+  "actions": { "message": "Actions" },
+  "importConfig": { "message": "Import configuration" },
+  "pasteConfig": { "message": "Paste configuration" },
+  "importPlaceholder": {
+    "message": "{ \"server\": { \"base\": \"https://api.example.com\", \"secret\": \"sk-xxx\" } } or equivalent Base64-encoded JSON"
+  },
+  "importHint": {
+    "message": "Paste JSON or Base64-encoded JSON. Fields you omit keep their current values."
+  },
+  "importAndSave": { "message": "Import and save" },
+  "cancel": { "message": "Cancel" },
+  "testConfig": { "message": "Test configuration" },
+  "save": { "message": "Save" }
+}
