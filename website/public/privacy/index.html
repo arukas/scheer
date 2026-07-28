@@ -100,6 +100,21 @@
         color: var(--text);
       }
 
+      .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .language-select {
+        padding: 7px 9px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+      }
+
       header {
         padding: 86px 0 58px;
         border-bottom: 1px solid var(--line);
@@ -266,6 +281,14 @@
           min-height: 62px;
         }
 
+        .nav-actions {
+          gap: 8px;
+        }
+
+        .language-select {
+          max-width: 104px;
+        }
+
         header {
           padding: 62px 0 44px;
         }
@@ -290,32 +313,44 @@
     </style>
   </head>
   <body>
-    <nav aria-label="页面导航">
+    <nav aria-label="页面导航" data-i18n-aria-label="pageNavigation">
       <div class="container nav-inner">
-        <a class="brand" href="/" aria-label="Scheer 首页">
+        <a class="brand" href="/" aria-label="Scheer 首页" data-i18n-aria-label="homeLink">
           <span class="mark" aria-hidden="true">S\</span>
           Scheer
         </a>
-        <a class="back" href="/">← 返回首页</a>
+        <div class="nav-actions">
+          <select
+            class="language-select"
+            data-language
+            aria-label="语言"
+            data-i18n-aria-label="languageSelector"
+          >
+            <option value="zh">简体中文</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+          <a class="back" href="/" data-i18n="backHome">← 返回首页</a>
+        </div>
       </div>
     </nav>
 
     <header>
       <div class="container">
         <span class="eyebrow">Privacy policy</span>
-        <h1>隐私声明</h1>
-        <p class="lead">
+        <h1 data-i18n="privacyTitle">隐私声明</h1>
+        <p class="lead" data-i18n="privacyLead">
           Scheer
           以隐私优先为设计原则。项目维护者不收集、存储、出售或共享用户的个人信息，也不追踪用户的浏览或使用行为。
         </p>
-        <p class="updated">生效日期：2026 年 7 月 23 日</p>
+        <p class="updated" data-i18n="effectiveDate">生效日期：2026 年 7 月 23 日</p>
       </div>
     </header>
 
     <main class="container">
       <div class="summary">
-        <strong>简单地说</strong>
-        <p>
+        <strong data-i18n="privacySummaryTitle">简单地说</strong>
+        <p data-i18n="privacySummaryText">
           Scheer
           没有数据收集服务器、用户账号、分析统计、广告或遥测。商品数据只会在用户主动操作时发送到用户自己配置的后端，而不会发送给
           Scheer 项目维护者。
@@ -324,33 +359,39 @@
 
       <article>
         <section>
-          <h2>我们不收集什么</h2>
+          <h2 data-i18n="notCollectTitle">我们不收集什么</h2>
           <div class="content">
-            <p>Scheer 项目维护者不会通过扩展收集以下信息：</p>
+            <p data-i18n="notCollectLead">Scheer 项目维护者不会通过扩展收集以下信息：</p>
             <ul>
-              <li>姓名、邮箱、电话号码、账号或其他身份信息；</li>
-              <li>浏览历史、访问网站列表、搜索记录或页面停留时间；</li>
-              <li>认证信息、Cookie、支付信息或表单内容；</li>
-              <li>设备标识符、IP 地址、位置或使用情况统计。</li>
+              <li data-i18n="notCollectIdentity">姓名、邮箱、电话号码、账号或其他身份信息；</li>
+              <li data-i18n="notCollectBrowsing">
+                浏览历史、访问网站列表、搜索记录或页面停留时间；
+              </li>
+              <li data-i18n="notCollectCredentials">认证信息、Cookie、支付信息或表单内容；</li>
+              <li data-i18n="notCollectDevice">设备标识符、IP 地址、位置或使用情况统计。</li>
             </ul>
-            <div class="no-track" aria-label="Scheer 不使用的技术">
-              <span>无分析统计</span>
-              <span>无广告 SDK</span>
-              <span>无遥测</span>
-              <span>无追踪像素</span>
-              <span>无指纹识别</span>
-              <span>无后台上报</span>
+            <div
+              class="no-track"
+              aria-label="Scheer 不使用的技术"
+              data-i18n-aria-label="unusedTechnologies"
+            >
+              <span data-i18n="noAnalytics">无分析统计</span>
+              <span data-i18n="noAds">无广告 SDK</span>
+              <span data-i18n="noTelemetry">无遥测</span>
+              <span data-i18n="noPixels">无追踪像素</span>
+              <span data-i18n="noFingerprinting">无指纹识别</span>
+              <span data-i18n="noBackgroundReports">无后台上报</span>
             </div>
           </div>
         </section>
 
         <section>
-          <h2>商品页面数据</h2>
+          <h2 data-i18n="productDataTitle">商品页面数据</h2>
           <div class="content">
-            <p>
+            <p data-i18n="productDataText1">
               为实现商品采集功能，扩展会在获得网站访问权限后识别当前商品页面。只有当用户主动点击“创建商品”时，扩展才会读取当前页面中的商品标题、价格、规格、图片等商品信息。
             </p>
-            <p>
+            <p data-i18n="productDataText2">
               这些数据在浏览器内完成转换，并直接发送至用户在 Scheer 中配置的后端接口。Scheer
               项目维护者不会接收、复制或保存这些数据。用户自有后端对数据的处理由该后端的运营者负责。
             </p>
@@ -358,13 +399,13 @@
         </section>
 
         <section>
-          <h2>本地存储</h2>
+          <h2 data-i18n="localStorageTitle">本地存储</h2>
           <div class="content">
-            <p>
+            <p data-i18n="localStorageText1">
               后端地址、访问密钥、扩展设置、创建历史和可选的调试日志保存在浏览器的
               <code>chrome.storage.local</code> 中，仅用于扩展功能。
             </p>
-            <p>
+            <p data-i18n="localStorageText2">
               这些信息不会自动发送给 Scheer
               项目维护者。用户可以关闭日志持久化、清除调试日志，或卸载扩展以删除本地数据。
             </p>
@@ -372,15 +413,15 @@
         </section>
 
         <section>
-          <h2>用户主动提供的日志</h2>
+          <h2 data-i18n="providedLogsTitle">用户主动提供的日志</h2>
           <div class="content">
-            <p>
+            <p data-i18n="providedLogsText1">
               当用户主动寻求技术支持时，可以自行导出并提供调试日志。提供日志完全自愿，扩展不会自动上传日志。
             </p>
-            <p>
+            <p data-i18n="providedLogsText2">
               我们仅将用户主动提供的日志用于定位和解决其反馈的问题，不用于分析、营销、建立用户画像或任何其他用途，也不会出售或分享给第三方。问题解决后，我们会删除不再需要的日志副本。
             </p>
-            <p>
+            <p data-i18n="providedLogsText3">
               Scheer
               会对常见敏感请求头进行脱敏，但用户仍应在发送前检查日志内容，并移除不希望提供的信息。
             </p>
@@ -388,9 +429,9 @@
         </section>
 
         <section>
-          <h2>第三方服务</h2>
+          <h2 data-i18n="thirdPartyTitle">第三方服务</h2>
           <div class="content">
-            <p>
+            <p data-i18n="thirdPartyText">
               Scheer
               不集成第三方分析、广告或追踪服务。扩展只会访问用户当前打开的商品网站，并连接用户自己配置的后端接口；这些网站和后端适用各自的隐私政策。
             </p>
@@ -398,18 +439,18 @@
         </section>
 
         <section>
-          <h2>数据使用限制</h2>
+          <h2 data-i18n="usageLimitsTitle">数据使用限制</h2>
           <div class="content">
-            <p>
+            <p data-i18n="usageLimitsText">
               扩展对网页内容和网站访问权限的使用，仅限于向用户提供其主动请求的商品识别、采集和提交功能。数据不会用于广告、信用评估、转售或与该单一用途无关的目的。
             </p>
           </div>
         </section>
 
         <section>
-          <h2>声明变更</h2>
+          <h2 data-i18n="changesTitle">声明变更</h2>
           <div class="content">
-            <p>
+            <p data-i18n="changesText">
               如果 Scheer
               的数据处理方式发生变化，我们会同步更新本页面及生效日期。任何新增的数据收集行为都会在实施前进行明确披露。
             </p>
@@ -417,9 +458,9 @@
         </section>
 
         <section>
-          <h2>联系我们</h2>
+          <h2 data-i18n="contactTitle">联系我们</h2>
           <div class="content">
-            <p>
+            <p data-i18n="contactText">
               对本隐私声明有疑问，可发送邮件至
               <a class="contact" href="mailto:developer@arukas.work">developer@arukas.work</a>
               ，或通过
@@ -440,8 +481,9 @@
     <footer>
       <div class="container footer-inner">
         <span>© 2026 Scheer Contributors · MIT License</span>
-        <span>不收集 · 不追踪 · 不出售</span>
+        <span data-i18n="privacyFooter">不收集 · 不追踪 · 不出售</span>
       </div>
     </footer>
+    <script type="module" src="/i18n.js"></script>
   </body>
 </html>

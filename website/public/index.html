@@ -144,6 +144,15 @@
         color: var(--text);
       }
 
+      .language-select {
+        padding: 7px 9px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+      }
+
       .hero {
         display: grid;
         min-height: 680px;
@@ -826,6 +835,14 @@
           min-height: 62px;
         }
 
+        .nav-links {
+          gap: 8px;
+        }
+
+        .language-select {
+          max-width: 104px;
+        }
+
         .hero {
           padding-block: 54px 60px;
         }
@@ -930,24 +947,35 @@
     </style>
   </head>
   <body>
-    <a class="skip-link" href="#main">跳到主要内容</a>
+    <a class="skip-link" href="#main" data-i18n="skipLink">跳到主要内容</a>
 
-    <nav class="nav" aria-label="主导航">
+    <nav class="nav" aria-label="主导航" data-i18n-aria-label="mainNavigation">
       <div class="container nav-inner">
-        <a class="brand" href="#" aria-label="Scheer 首页">
+        <a class="brand" href="#" aria-label="Scheer 首页" data-i18n-aria-label="homeLink">
           <span class="mark" aria-hidden="true">S\</span>
           Scheer
         </a>
         <div class="nav-links">
-          <a href="#features">功能</a>
-          <a href="#platforms">平台</a>
-          <a href="#api">API 文档</a>
-          <a href="/privacy/">隐私</a>
+          <a href="#features" data-i18n="navFeatures">功能</a>
+          <a href="#platforms" data-i18n="navPlatforms">平台</a>
+          <a href="#api" data-i18n="navApi">API 文档</a>
+          <a href="/privacy/" data-i18n="navPrivacy">隐私</a>
+          <select
+            class="language-select"
+            data-language
+            aria-label="语言"
+            data-i18n-aria-label="languageSelector"
+          >
+            <option value="zh">简体中文</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
           <a
             class="nav-action"
             href="https://t.me/+wyVkA-3YU-kzZjMx"
             target="_blank"
             rel="noreferrer"
+            data-i18n="telegramGroup"
             >电报群 ↗</a
           >
         </div>
@@ -958,35 +986,50 @@
       <div class="container hero">
         <div class="hero-copy">
           <span class="eyebrow">Privacy-first Chrome extension</span>
-          <h1>商品数据，<span>直接</span>到你的后端。</h1>
-          <p class="lead">
+          <h1 data-i18n="heroTitle">商品数据，<span>直接</span>到你的后端。</h1>
+          <p class="lead" data-i18n="heroLead">
             Scheer
             在浏览器中识别商品页、提取多平台数据并归一化为统一结构。一键提交，不经过第三方中转。
           </p>
           <div class="actions">
-            <a class="button" href="#api">开始对接 API →</a>
-            <a class="button secondary" href="mailto:developer@arukas.work">邮件联系</a>
+            <a class="button" href="#api" data-i18n="startApi">开始对接 API →</a>
+            <a class="button secondary" href="mailto:developer@arukas.work" data-i18n="emailContact"
+              >邮件联系</a
+            >
           </div>
         </div>
 
-        <div class="hero-visual" aria-label="Scheer 数据处理流程示意">
+        <div
+          class="hero-visual"
+          aria-label="Scheer 数据处理流程示意"
+          data-i18n-aria-label="pipelineDiagram"
+        >
           <div class="window-bar" aria-hidden="true">
             <i></i><i></i><i></i><span class="window-title">scheer / pipeline</span>
           </div>
           <div class="pipeline">
             <div class="pipeline-step">
               <span class="step-no">01</span>
-              <div><strong>识别商品页</strong><small>Shopify · Amazon · TikTok Shop</small></div>
+              <div>
+                <strong data-i18n="pipelineDetect">识别商品页</strong
+                ><small>Shopify · Amazon · TikTok Shop</small>
+              </div>
               <span class="status">DETECTED</span>
             </div>
             <div class="pipeline-step">
               <span class="step-no">02</span>
-              <div><strong>归一化字段</strong><small>商品 · 变体 · 规格 · 媒体</small></div>
+              <div>
+                <strong data-i18n="pipelineNormalize">归一化字段</strong
+                ><small data-i18n="pipelineNormalizeDetail">商品 · 变体 · 规格 · 媒体</small>
+              </div>
               <span class="status">NORMALIZED</span>
             </div>
             <div class="pipeline-step">
               <span class="step-no">03</span>
-              <div><strong>推送自有后端</strong><small>HTTPS · Bearer Token · JSON</small></div>
+              <div>
+                <strong data-i18n="pipelineSend">推送自有后端</strong
+                ><small>HTTPS · Bearer Token · JSON</small>
+              </div>
               <span class="status">2XX OK</span>
             </div>
             <div class="json-peek" aria-hidden="true">
@@ -1000,19 +1043,21 @@
         </div>
       </div>
 
-      <div class="container stats" aria-label="Scheer 概览">
-        <div class="stat"><strong>9</strong><span>个可采集平台</span></div>
-        <div class="stat"><strong>2</strong><span>个后端接口</span></div>
-        <div class="stat"><strong>0</strong><span>个中间服务器</span></div>
+      <div class="container stats" aria-label="Scheer 概览" data-i18n-aria-label="overview">
+        <div class="stat">
+          <strong>9</strong><span data-i18n="statPlatforms">个可采集平台</span>
+        </div>
+        <div class="stat"><strong>2</strong><span data-i18n="statEndpoints">个后端接口</span></div>
+        <div class="stat"><strong>0</strong><span data-i18n="statRelays">个中间服务器</span></div>
       </div>
 
       <section class="container section" id="features">
         <div class="section-heading">
           <div>
             <span class="eyebrow">What it does</span>
-            <h2>只做采集链路里真正重要的事。</h2>
+            <h2 data-i18n="featuresTitle">只做采集链路里真正重要的事。</h2>
           </div>
-          <p>
+          <p data-i18n="featuresLead">
             Scheer
             把平台差异留在扩展里，让你的后端只维护一套接收逻辑。凭据、历史和调试数据都留在本机。
           </p>
@@ -1020,35 +1065,45 @@
         <div class="feature-grid">
           <article class="card">
             <span class="card-index">01 / COLLECT</span>
-            <h3>一键采集当前商品</h3>
-            <p>自动判断当前页面能否采集，用户确认后才提取和提交，不做自动翻页或批量爬取。</p>
+            <h3 data-i18n="featureCollectTitle">一键采集当前商品</h3>
+            <p data-i18n="featureCollectText">
+              自动判断当前页面能否采集，用户确认后才提取和提交，不做自动翻页或批量爬取。
+            </p>
           </article>
           <article class="card">
             <span class="card-index">02 / NORMALIZE</span>
-            <h3>统一商品 Schema</h3>
-            <p>不同平台的商品、规格、变体、价格和媒体，统一映射成结构稳定的 JSON。</p>
+            <h3 data-i18n="featureSchemaTitle">统一商品 Schema</h3>
+            <p data-i18n="featureSchemaText">
+              不同平台的商品、规格、变体、价格和媒体，统一映射成结构稳定的 JSON。
+            </p>
           </article>
           <article class="card">
             <span class="card-index">03 / OWN</span>
-            <h3>数据直达自有后端</h3>
-            <p>
+            <h3 data-i18n="featureBackendTitle">数据直达自有后端</h3>
+            <p data-i18n="featureBackendText">
               目标地址、鉴权头和 Token 均由你配置。数据不经过 Scheer 的服务器，因为根本没有服务器。
             </p>
           </article>
           <article class="card">
             <span class="card-index">04 / DEBUG</span>
-            <h3>本地历史与脱敏日志</h3>
-            <p>记录创建结果，按需开启 Debug 并导出 NDJSON 日志；敏感请求头会自动脱敏。</p>
+            <h3 data-i18n="featureLogsTitle">本地历史与脱敏日志</h3>
+            <p data-i18n="featureLogsText">
+              记录创建结果，按需开启 Debug 并导出 NDJSON 日志；敏感请求头会自动脱敏。
+            </p>
           </article>
           <article class="card">
             <span class="card-index">05 / FLEXIBLE</span>
-            <h3>灵活的接口配置</h3>
-            <p>支持域名加相对路径或完整 URL，也可调整鉴权 Header、前缀、自定义 Header 和超时。</p>
+            <h3 data-i18n="featureConfigTitle">灵活的接口配置</h3>
+            <p data-i18n="featureConfigText">
+              支持域名加相对路径或完整 URL，也可调整鉴权 Header、前缀、自定义 Header 和超时。
+            </p>
           </article>
           <article class="card">
             <span class="card-index">06 / PRIVATE</span>
-            <h3>隐私优先</h3>
-            <p>扩展完全在 Chrome 中运行，凭据存于 chrome.storage.local，不上传账号密码。</p>
+            <h3 data-i18n="featurePrivacyTitle">隐私优先</h3>
+            <p data-i18n="featurePrivacyText">
+              扩展完全在 Chrome 中运行，凭据存于 chrome.storage.local，不上传账号密码。
+            </p>
           </article>
         </div>
       </section>
@@ -1057,37 +1112,57 @@
         <div class="section-heading">
           <div>
             <span class="eyebrow">Platform coverage</span>
-            <h2>一个入口，覆盖主流商品平台。</h2>
+            <h2 data-i18n="platformsTitle">一个入口，覆盖主流商品平台。</h2>
           </div>
-          <p>平台采集器各自处理数据来源与页面差异，提交到后端时使用相同的数据模型。</p>
+          <p data-i18n="platformsLead">
+            平台采集器各自处理数据来源与页面差异，提交到后端时使用相同的数据模型。
+          </p>
         </div>
         <div class="platform-panel">
-          <div class="platform"><strong>Shopify</strong><span>● 可采集</span></div>
-          <div class="platform"><strong>NewShop</strong><span>● 可采集</span></div>
-          <div class="platform"><strong>ShopBase</strong><span>● 可采集</span></div>
-          <div class="platform"><strong>ShopLine</strong><span>● 可采集</span></div>
-          <div class="platform"><strong>ShopLazza</strong><span>● 可采集</span></div>
-          <div class="platform"><strong>TikTok Shop</strong><span>● 可采集</span></div>
-          <div class="platform"><strong>Amazon</strong><span>● 可采集</span></div>
+          <div class="platform">
+            <strong>Shopify</strong><span data-i18n="collectable">● 可采集</span>
+          </div>
+          <div class="platform">
+            <strong>NewShop</strong><span data-i18n="collectable">● 可采集</span>
+          </div>
+          <div class="platform">
+            <strong>ShopBase</strong><span data-i18n="collectable">● 可采集</span>
+          </div>
+          <div class="platform">
+            <strong>ShopLine</strong><span data-i18n="collectable">● 可采集</span>
+          </div>
+          <div class="platform">
+            <strong>ShopLazza</strong><span data-i18n="collectable">● 可采集</span>
+          </div>
+          <div class="platform">
+            <strong>TikTok Shop</strong><span data-i18n="collectable">● 可采集</span>
+          </div>
+          <div class="platform">
+            <strong>Amazon</strong><span data-i18n="collectable">● 可采集</span>
+          </div>
           <div class="platform"><strong>WordPress</strong><span>● JSON-LD</span></div>
-          <div class="platform"><strong>ShadowShop</strong><span>● 可采集</span></div>
-          <div class="platform detect"><strong>XShopPy</strong><span>◐ 仅识别</span></div>
+          <div class="platform">
+            <strong>ShadowShop</strong><span data-i18n="collectable">● 可采集</span>
+          </div>
+          <div class="platform detect">
+            <strong>XShopPy</strong><span data-i18n="detectOnly">◐ 仅识别</span>
+          </div>
         </div>
-        <div class="flow" aria-label="数据流">
+        <div class="flow" aria-label="数据流" data-i18n-aria-label="dataFlow">
           <div class="flow-item">
             <b>INPUT</b>
-            <strong>当前商品页面</strong>
-            <small>用户主动打开并授权访问</small>
+            <strong data-i18n="flowInputTitle">当前商品页面</strong>
+            <small data-i18n="flowInputText">用户主动打开并授权访问</small>
           </div>
           <div class="flow-item">
             <b>SCHEER</b>
-            <strong>平台识别与字段转换</strong>
-            <small>全部在浏览器内完成</small>
+            <strong data-i18n="flowScheerTitle">平台识别与字段转换</strong>
+            <small data-i18n="flowScheerText">全部在浏览器内完成</small>
           </div>
           <div class="flow-item">
             <b>OUTPUT</b>
-            <strong>你的 REST API</strong>
-            <small>标准 JSON，经 HTTPS 直达</small>
+            <strong data-i18n="flowOutputTitle">你的 REST API</strong>
+            <small data-i18n="flowOutputText">标准 JSON，经 HTTPS 直达</small>
           </div>
         </div>
       </section>
@@ -1096,52 +1171,52 @@
         <div class="section-heading">
           <div>
             <span class="eyebrow">API reference</span>
-            <h2>后端只需实现两个接口。</h2>
+            <h2 data-i18n="apiTitle">后端只需实现两个接口。</h2>
           </div>
-          <p>
+          <p data-i18n="apiLead">
             默认路径是 <code>/scheer/products</code> 和
             <code>/scheer/me</code>。两者都可以在扩展配置页改为完整 URL。
           </p>
         </div>
 
         <div class="docs-shell">
-          <aside class="docs-nav" aria-label="API 文档目录">
-            <strong>文档目录</strong>
-            <a href="#api-auth">鉴权</a>
-            <a href="#api-create">创建商品</a>
-            <a href="#api-schema">字段结构</a>
-            <a href="#api-response">响应格式</a>
-            <a href="#api-test">测试连接</a>
-            <a href="#api-config">配置示例</a>
+          <aside class="docs-nav" aria-label="API 文档目录" data-i18n-aria-label="apiNavigation">
+            <strong data-i18n="docsContents">文档目录</strong>
+            <a href="#api-auth" data-i18n="auth">鉴权</a>
+            <a href="#api-create" data-i18n="createProduct">创建商品</a>
+            <a href="#api-schema" data-i18n="fieldSchema">字段结构</a>
+            <a href="#api-response" data-i18n="responseFormat">响应格式</a>
+            <a href="#api-test" data-i18n="testConnection">测试连接</a>
+            <a href="#api-config" data-i18n="configExample">配置示例</a>
           </aside>
 
           <div class="docs-content">
             <section class="doc-section" id="api-auth">
-              <h3>鉴权</h3>
-              <p>
+              <h3 data-i18n="auth">鉴权</h3>
+              <p data-i18n="authText">
                 默认使用 Bearer Token。Header 名和前缀均可配置，自定义 Header
                 会覆盖同名默认值。生产环境请使用 HTTPS。
               </p>
               <div class="code-block">
-                <button class="copy" type="button" data-copy>复制</button>
+                <button class="copy" type="button" data-copy data-i18n="copy">复制</button>
                 <pre><code>Authorization: Bearer &lt;secret&gt;
 Content-Type: application/json</code></pre>
               </div>
-              <div class="note">
+              <div class="note" data-i18n="authNote">
                 默认请求超时为 30 秒。密钥仅保存在用户本机的
                 <code>chrome.storage.local</code> 中。
               </div>
             </section>
 
             <section class="doc-section" id="api-create">
-              <h3>创建商品</h3>
-              <p>接收扩展从当前页面提取并归一化后的完整商品数据。</p>
+              <h3 data-i18n="createProduct">创建商品</h3>
+              <p data-i18n="createProductText">接收扩展从当前页面提取并归一化后的完整商品数据。</p>
               <div class="endpoint">
                 <span class="method">POST</span>
                 <span>https://api.example.com/scheer/products</span>
               </div>
               <div class="code-block">
-                <button class="copy" type="button" data-copy>复制</button>
+                <button class="copy" type="button" data-copy data-i18n="copy">复制</button>
                 <pre><code>{
   "platform": "shopify",
   "source_url": "https://shop.example.com/products/sample",
@@ -1149,7 +1224,7 @@ Content-Type: application/json</code></pre>
   "product": {
     "title": "Sample Product",
     "handle": "sample-product",
-    "description_html": "&lt;p&gt;商品描述&lt;/p&gt;",
+    "description_html": "&lt;p&gt;Product description&lt;/p&gt;",
     "vendor": "Example Brand",
     "product_type": "Apparel",
     "tags": ["new", "summer"],
@@ -1192,8 +1267,8 @@ Content-Type: application/json</code></pre>
             </section>
 
             <section class="doc-section" id="api-schema">
-              <h3>字段结构</h3>
-              <p>
+              <h3 data-i18n="fieldSchema">字段结构</h3>
+              <p data-i18n="schemaText">
                 价格以两位小数字符串传递，避免浮点误差。<code>variants</code> 和
                 <code>images</code> 始终为数组。
               </p>
@@ -1201,72 +1276,72 @@ Content-Type: application/json</code></pre>
                 <table>
                   <thead>
                     <tr>
-                      <th>字段</th>
-                      <th>类型</th>
-                      <th>要求</th>
-                      <th>说明</th>
+                      <th data-i18n="field">字段</th>
+                      <th data-i18n="type">类型</th>
+                      <th data-i18n="requirement">要求</th>
+                      <th data-i18n="description">说明</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
                       <td><code>platform</code></td>
                       <td>string</td>
-                      <td class="required">必填</td>
-                      <td>平台代码</td>
+                      <td class="required" data-i18n="required">必填</td>
+                      <td data-i18n="platformCode">平台代码</td>
                     </tr>
                     <tr>
                       <td><code>source_url</code></td>
                       <td>string</td>
-                      <td class="required">必填</td>
-                      <td>原商品页完整 URL</td>
+                      <td class="required" data-i18n="required">必填</td>
+                      <td data-i18n="sourceUrlDescription">原商品页完整 URL</td>
                     </tr>
                     <tr>
                       <td><code>source_product_id</code></td>
                       <td>string</td>
-                      <td>可选</td>
-                      <td>平台原始商品 ID</td>
+                      <td data-i18n="optional">可选</td>
+                      <td data-i18n="sourceProductIdDescription">平台原始商品 ID</td>
                     </tr>
                     <tr>
                       <td><code>product.title</code></td>
                       <td>string</td>
-                      <td class="required">必填</td>
-                      <td>商品标题</td>
+                      <td class="required" data-i18n="required">必填</td>
+                      <td data-i18n="productTitleDescription">商品标题</td>
                     </tr>
                     <tr>
                       <td><code>product.options</code></td>
                       <td>array</td>
-                      <td>可选</td>
-                      <td>规格维度、顺序和可选值</td>
+                      <td data-i18n="optional">可选</td>
+                      <td data-i18n="optionsDescription">规格维度、顺序和可选值</td>
                     </tr>
                     <tr>
                       <td><code>product.variants</code></td>
                       <td>array</td>
-                      <td class="required">必填</td>
-                      <td>变体列表；价格为 decimal 字符串</td>
+                      <td class="required" data-i18n="required">必填</td>
+                      <td data-i18n="variantsDescription">变体列表；价格为 decimal 字符串</td>
                     </tr>
                     <tr>
                       <td><code>product.images</code></td>
                       <td>array</td>
-                      <td class="required">必填</td>
-                      <td>图片或视频列表</td>
+                      <td class="required" data-i18n="required">必填</td>
+                      <td data-i18n="imagesDescription">图片或视频列表</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              <div class="note">
+              <div class="note" data-i18n="platformCodesNote">
                 平台代码：<code>shopify</code>、<code>newshop</code>、<code>shopbase</code>、<code>shopline</code>、<code>shoplazza</code>、<code>tiktok</code>、<code>amazon</code>、<code>wordpress</code>、<code>shadowshop</code>。旧后端可将
                 <code>newshop</code> 映射为 <code>wshop</code>。
               </div>
             </section>
 
             <section class="doc-section" id="api-response">
-              <h3>响应格式</h3>
-              <p>
+              <h3 data-i18n="responseFormat">响应格式</h3>
+              <p data-i18n="responseText">
                 HTTP 2xx 时返回 JSON。<code>product_id</code> 和 <code>log_id</code>
                 必须为非空字符串；扩展会把它们写入本地历史。
               </p>
               <div class="code-block">
-                <button class="copy" type="button" data-copy>复制</button>
+                <button class="copy" type="button" data-copy data-i18n="copy">复制</button>
                 <pre><code>{
   "product_id": "backend-product-id",
   "log_id": "import-log-id",
@@ -1277,25 +1352,31 @@ Content-Type: application/json</code></pre>
   "message": "created"
 }</code></pre>
               </div>
-              <p>HTTP 4xx / 5xx 时建议返回可直接展示给用户的错误信息：</p>
+              <p data-i18n="errorResponseText">
+                HTTP 4xx / 5xx 时建议返回可直接展示给用户的错误信息：
+              </p>
               <div class="code-block">
-                <button class="copy" type="button" data-copy>复制</button>
+                <button class="copy" type="button" data-copy data-i18n="copy">复制</button>
                 <pre><code>{
-  "message": "商品已存在"
+  "message": "Product already exists"
 }</code></pre>
               </div>
             </section>
 
             <section class="doc-section" id="api-test">
-              <h3>测试连接</h3>
-              <p>Options 页用此接口验证地址、鉴权和 JSON 响应是否正常。</p>
+              <h3 data-i18n="testConnection">测试连接</h3>
+              <p data-i18n="testConnectionText">
+                Options 页用此接口验证地址、鉴权和 JSON 响应是否正常。
+              </p>
               <div class="endpoint">
                 <span class="method get">GET</span>
                 <span>https://api.example.com/scheer/me</span>
               </div>
-              <p>返回任意合法 JSON 即可。扩展只检查 HTTP 2xx、非空响应体与合法 JSON。</p>
+              <p data-i18n="testResponseText">
+                返回任意合法 JSON 即可。扩展只检查 HTTP 2xx、非空响应体与合法 JSON。
+              </p>
               <div class="code-block">
-                <button class="copy" type="button" data-copy>复制</button>
+                <button class="copy" type="button" data-copy data-i18n="copy">复制</button>
                 <pre><code>{
   "id": "user-id",
   "name": "Current User"
@@ -1304,10 +1385,10 @@ Content-Type: application/json</code></pre>
             </section>
 
             <section class="doc-section" id="api-config">
-              <h3>扩展配置示例</h3>
-              <p>配置页支持直接粘贴 JSON 或 Base64 编码的同等 JSON。</p>
+              <h3 data-i18n="extensionConfigExample">扩展配置示例</h3>
+              <p data-i18n="configPasteText">配置页支持直接粘贴 JSON 或 Base64 编码的同等 JSON。</p>
               <div class="code-block">
-                <button class="copy" type="button" data-copy>复制</button>
+                <button class="copy" type="button" data-copy data-i18n="copy">复制</button>
                 <pre><code>{
   "server": {
     "base": "https://api.example.com",
@@ -1323,18 +1404,18 @@ Content-Type: application/json</code></pre>
               <div class="steps">
                 <div class="step">
                   <b>STEP 01</b>
-                  <strong>实现两个接口</strong>
-                  <p>按上方约定接收商品并返回创建结果。</p>
+                  <strong data-i18n="stepImplementTitle">实现两个接口</strong>
+                  <p data-i18n="stepImplementText">按上方约定接收商品并返回创建结果。</p>
                 </div>
                 <div class="step">
                   <b>STEP 02</b>
-                  <strong>导入并测试配置</strong>
-                  <p>在 Options 中保存 Token，点击“测试配置”。</p>
+                  <strong data-i18n="stepConfigureTitle">导入并测试配置</strong>
+                  <p data-i18n="stepConfigureText">在 Options 中保存 Token，点击“测试配置”。</p>
                 </div>
                 <div class="step">
                   <b>STEP 03</b>
-                  <strong>打开商品页</strong>
-                  <p>点击扩展图标，确认平台后创建商品。</p>
+                  <strong data-i18n="stepOpenTitle">打开商品页</strong>
+                  <p data-i18n="stepOpenText">点击扩展图标，确认平台后创建商品。</p>
                 </div>
               </div>
             </section>
@@ -1344,28 +1425,24 @@ Content-Type: application/json</code></pre>
 
       <section class="container cta">
         <div>
-          <h2>你的商品数据，不需要绕路。</h2>
-          <p>如需插件使用、部署或 API 对接支持，请通过邮箱联系我们。</p>
+          <h2 data-i18n="ctaTitle">你的商品数据，不需要绕路。</h2>
+          <p data-i18n="ctaText">如需插件使用、部署或 API 对接支持，请通过邮箱联系我们。</p>
         </div>
-        <a class="button" href="mailto:developer@arukas.work">邮件联系 ↗</a>
+        <a class="button" href="mailto:developer@arukas.work" data-i18n="emailContactArrow"
+          >邮件联系 ↗</a
+        >
       </section>
     </main>
 
     <footer>
       <div class="container footer-inner">
         <span>© 2026 Scheer Contributors · MIT License</span>
-        <span><a href="/privacy/">隐私声明</a> · 浏览器内采集 · 自有后端</span>
+        <span data-i18n="footerSummary"
+          ><a href="/privacy/">隐私声明</a> · 浏览器内采集 · 自有后端</span
+        >
       </div>
     </footer>
 
-    <script>
-      document.querySelectorAll('[data-copy]').forEach((button) => {
-        button.addEventListener('click', async () => {
-          await navigator.clipboard.writeText(button.nextElementSibling.innerText);
-          button.textContent = '已复制';
-          setTimeout(() => (button.textContent = '复制'), 1200);
-        });
-      });
-    </script>
+    <script type="module" src="/i18n.js"></script>
   </body>
 </html>
