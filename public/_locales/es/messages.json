@@ -33,6 +33,12 @@
   "productId": { "message": "ID del producto: $1" },
   "logId": { "message": "ID del registro: $1" },
   "createFailed": { "message": "Error al crear: $1" },
+  "tokenValidity": { "message": "Validez del token" },
+  "tokenChecking": { "message": "Comprobando…" },
+  "tokenPermanent": { "message": "Sin caducidad (permanente)" },
+  "tokenExpiresInDays": { "message": "$1 (quedan $2 días)" },
+  "tokenExpiresInHours": { "message": "$1 (quedan $2 horas)" },
+  "tokenExpiredOn": { "message": "Caducó el $1" },
   "unsupportedPlatform": { "message": "No se detectó una plataforma compatible" },
   "platformRecognized": {
     "message": "Plataforma detectada; lista para recopilar datos"

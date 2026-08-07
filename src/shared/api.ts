@@ -157,6 +157,62 @@ export function buildRequestHeaders(
 }
 
 /**
+ * 限流响应头（后端可选返回，扩展对每次后端响应做全局检查）
+ * - X-RateLimit-Limit：每个限流窗口的总配额
+ * - X-RateLimit-Remaining：当前窗口剩余可用次数
+ * - X-RateLimit-Reset：配额重置时间（Unix 秒级时间戳）
+ */
+export const RATE_LIMIT_LIMIT_HEADER = 'X-RateLimit-Limit';
+export const RATE_LIMIT_REMAINING_HEADER = 'X-RateLimit-Remaining';
+export const RATE_LIMIT_RESET_HEADER = 'X-RateLimit-Reset';
+
+/** 剩余额度不高于该值时记录告警日志 */
+export const RATE_LIMIT_LOW_THRESHOLD = 5;
+
+export interface RateLimitInfo {
+  limit?: number;
+  remaining: number;
+  reset?: number;
+}
+
+function parseOptionalNumberHeader(headers: Headers, name: string): number | undefined {
+  const raw = headers.get(name);
+  if (raw === null || !raw.trim()) return undefined;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+/**
+ * 解析限流响应头；未返回 X-RateLimit-Remaining 或值非法时返回 null（不检查）。
+ */
+export function parseRateLimitHeaders(headers: Headers): RateLimitInfo | null {
+  const remaining = parseOptionalNumberHeader(headers, RATE_LIMIT_REMAINING_HEADER);
+  if (remaining === undefined) return null;
+
+  const info: RateLimitInfo = { remaining };
+  const limit = parseOptionalNumberHeader(headers, RATE_LIMIT_LIMIT_HEADER);
+  if (limit !== undefined) info.limit = limit;
+  const reset = parseOptionalNumberHeader(headers, RATE_LIMIT_RESET_HEADER);
+  if (reset !== undefined) info.reset = reset;
+  return info;
+}
+
+/**
+ * 全局限流检查：所有后端请求的响应都会经过这里。
+ * 额度用尽（<= 0）或接近阈值时写 warn 日志，不影响本次请求的结果。
+ */
+async function checkRateLimitHeaders(headers: Headers, operation: string): Promise<void> {
+  const info = parseRateLimitHeaders(headers);
+  if (!info) return;
+
+  if (info.remaining <= 0) {
+    await log.warn('API 额度已用尽', { operation, ...info });
+  } else if (info.remaining <= RATE_LIMIT_LOW_THRESHOLD) {
+    await log.warn('API 额度即将用尽', { operation, ...info });
+  }
+}
+
+/**
  * 向后端创建商品接口提交数据。
  */
 export async function submitCreateProduct(
@@ -198,6 +254,7 @@ export async function submitCreateProduct(
 
   try {
     const res = await fetch(url, requestOptions);
+    await checkRateLimitHeaders(res.headers, 'create_product');
     const text = await res.text();
     const preview = text.trim().slice(0, MAX_RESPONSE_PREVIEW);
 
@@ -288,6 +345,7 @@ export async function testBackendConnection(server: ServerConfig): Promise<unkno
 
   try {
     const res = await fetch(url, requestOptions);
+    await checkRateLimitHeaders(res.headers, 'current_user');
     const text = await res.text();
     const preview = text.trim().slice(0, MAX_RESPONSE_PREVIEW);
 

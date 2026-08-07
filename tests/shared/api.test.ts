@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isAbsoluteUrl, resolveEndpoint, buildCurl, buildRequestHeaders } from '@/shared/api';
+import {
+  isAbsoluteUrl,
+  resolveEndpoint,
+  buildCurl,
+  buildRequestHeaders,
+  parseRateLimitHeaders,
+} from '@/shared/api';
 import type { ServerConfig } from '@/shared/schema';
 
 vi.mock('@/shared/storage', () => ({
@@ -171,5 +177,38 @@ describe('buildRequestHeaders', () => {
     });
     expect(curl).toContain("-H 'x-api-key: <redacted>'");
     expect(curl).not.toContain('sk-1234567890');
+  });
+});
+
+describe('parseRateLimitHeaders', () => {
+  it('returns null when X-RateLimit-Remaining is absent', () => {
+    const headers = new Headers({ 'X-RateLimit-Limit': '100' });
+    expect(parseRateLimitHeaders(headers)).toBeNull();
+  });
+
+  it('returns null when X-RateLimit-Remaining is not numeric', () => {
+    const headers = new Headers({ 'X-RateLimit-Remaining': 'many' });
+    expect(parseRateLimitHeaders(headers)).toBeNull();
+  });
+
+  it('parses remaining, limit and reset', () => {
+    const headers = new Headers({
+      'X-RateLimit-Limit': '100',
+      'X-RateLimit-Remaining': '4',
+      'X-RateLimit-Reset': '1767225600',
+    });
+    expect(parseRateLimitHeaders(headers)).toEqual({ limit: 100, remaining: 4, reset: 1767225600 });
+  });
+
+  it('keeps only remaining when optional headers are missing or invalid', () => {
+    expect(parseRateLimitHeaders(new Headers({ 'X-RateLimit-Remaining': '0' }))).toEqual({
+      remaining: 0,
+    });
+    const headers = new Headers({
+      'X-RateLimit-Limit': 'n/a',
+      'X-RateLimit-Remaining': '7',
+      'X-RateLimit-Reset': '',
+    });
+    expect(parseRateLimitHeaders(headers)).toEqual({ remaining: 7 });
   });
 });

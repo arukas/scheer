@@ -49,5 +49,11 @@ export default defineConfig({
   },
   vite: () => ({
     plugins: [viteTsconfigPaths()],
+    build: {
+      // 关闭 modulepreload 提示：MV3 扩展页面中的 <link rel="modulepreload">
+      // 会被 Chrome 以 "cross-world extension resource mismatch" 拒绝并打出警告，
+      // 预加载本就用不上，关掉即可消除警告。
+      modulePreload: false,
+    },
   }),
 });

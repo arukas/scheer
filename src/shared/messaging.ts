@@ -6,6 +6,7 @@
 
 import type { CreateProductSuccessResponse } from './schema';
 import type { PlatformKey } from './schema';
+import type { TokenStatus } from './schema';
 
 export type MessageType =
   | 'PING'
@@ -19,7 +20,9 @@ export type MessageType =
   | 'EXPORT_DEBUG_LOGS'
   | 'EXTRACT_PRODUCT'
   | 'CREATE_PRODUCT'
-  | 'TEST_CONFIG';
+  | 'TEST_CONFIG'
+  | 'GET_TOKEN_STATUS'
+  | 'REFRESH_TOKEN_STATUS';
 
 export interface BaseMessage {
   type: MessageType;
@@ -76,6 +79,14 @@ export interface TestConfigMessage extends BaseMessage {
   payload: { config: import('./schema').Config };
 }
 
+export interface GetTokenStatusMessage extends BaseMessage {
+  type: 'GET_TOKEN_STATUS';
+}
+
+export interface RefreshTokenStatusMessage extends BaseMessage {
+  type: 'REFRESH_TOKEN_STATUS';
+}
+
 export type ScheerMessage =
   | PingMessage
   | GetPageStatusMessage
@@ -88,10 +99,16 @@ export type ScheerMessage =
   | ExportDebugLogsMessage
   | ExtractProductMessage
   | CreateProductMessage
-  | TestConfigMessage;
+  | TestConfigMessage
+  | GetTokenStatusMessage
+  | RefreshTokenStatusMessage;
 
 export type CreateProductResponse =
   | { success: true; data: CreateProductSuccessResponse }
+  | { success: false; error: string };
+
+export type RefreshTokenStatusResponse =
+  | { success: true; data: TokenStatus }
   | { success: false; error: string };
 
 export async function sendMessage<T = unknown>(message: ScheerMessage): Promise<T> {

@@ -33,6 +33,12 @@
   "productId": { "message": "Product ID: $1" },
   "logId": { "message": "Log ID: $1" },
   "createFailed": { "message": "Creation failed: $1" },
+  "tokenValidity": { "message": "Token validity" },
+  "tokenChecking": { "message": "Checking…" },
+  "tokenPermanent": { "message": "No expiry (permanent)" },
+  "tokenExpiresInDays": { "message": "$1 ($2 days left)" },
+  "tokenExpiresInHours": { "message": "$1 ($2 hours left)" },
+  "tokenExpiredOn": { "message": "Expired on $1" },
   "unsupportedPlatform": { "message": "No supported platform was detected" },
   "platformRecognized": {
     "message": "Platform detected; ready to collect when requested"

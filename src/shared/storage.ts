@@ -6,10 +6,11 @@
  * - config: Config
  * - debug_logs: DebugLogs
  * - history: HistoryItem[]
+ * - token_status: TokenStatus | null
  */
 
 import { storage } from 'wxt/storage';
-import type { Config, DebugLogs, DebugLogEntry, HistoryItem } from './schema';
+import type { Config, DebugLogs, DebugLogEntry, HistoryItem, TokenStatus } from './schema';
 import { DEFAULT_CONFIG, DEFAULT_DEBUG_LOGS } from './schema';
 
 // ============================================================================
@@ -115,6 +116,23 @@ export function exportDebugLogs(logs: DebugLogs): string {
     count: logs.entries.length,
   };
   return [JSON.stringify(meta), ...logs.entries.map((entry) => JSON.stringify(entry))].join('\n');
+}
+
+// ============================================================================
+// Token Status
+// ============================================================================
+
+const tokenStatusItem = storage.defineItem<TokenStatus | null>('local:token_status', {
+  fallback: null,
+});
+
+/** 读取缓存的 Token 有效期状态；从未查询过时返回 null */
+export async function getTokenStatus(): Promise<TokenStatus | null> {
+  return tokenStatusItem.getValue();
+}
+
+export async function setTokenStatus(status: TokenStatus): Promise<void> {
+  return tokenStatusItem.setValue(status);
 }
 
 // ============================================================================

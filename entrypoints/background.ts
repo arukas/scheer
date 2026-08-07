@@ -1,7 +1,7 @@
 import { defineBackground } from 'wxt/sandbox';
 import { storage } from 'wxt/storage';
 import { DEFAULT_DEBUG_LOGS, DEFAULT_CONFIG } from '../src/shared/schema';
-import type { Config, CreateProductPayload, HistoryItem } from '../src/shared/schema';
+import type { Config, CreateProductPayload, HistoryItem, TokenStatus } from '../src/shared/schema';
 import {
   getConfig,
   setConfig,
@@ -9,12 +9,15 @@ import {
   clearDebugLogs,
   exportDebugLogs,
   appendHistory,
+  getTokenStatus,
+  setTokenStatus,
 } from '../src/shared/storage';
 import { createLogger } from '../src/shared/logger';
 import { onMessage } from '../src/shared/messaging';
 import { getPageStatus } from '../src/shared/platform';
 import type { PageStatus } from '../src/shared/platform';
 import { submitCreateProduct, testBackendConnection } from '../src/shared/api';
+import { extractTokenExpiresAt } from '../src/shared/token-status';
 import { t } from '../src/shared/i18n';
 
 export default defineBackground(() => {
@@ -193,22 +196,41 @@ export default defineBackground(() => {
             message as { payload: { config: import('../src/shared/schema').Config } }
           ).payload;
 
-          let mergedConfig = baseConfig;
-          const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (activeTab?.id) {
-            const injectedConfig = await getInjectedConfig(activeTab.id);
-            mergedConfig = mergeWithInjectedConfig(baseConfig, injectedConfig);
-            log.debug('TEST_CONFIG 合并注入配置', { hasInjected: !!injectedConfig });
-          }
+          const mergedConfig = await resolveActiveTabConfig(baseConfig);
 
           if (!mergedConfig.server.secret) {
             throw new Error('后端密钥未配置');
           }
           const data = await testBackendConnection(mergedConfig.server);
+          await saveTokenStatus(data);
           sendResponse({ success: true, data });
         } catch (err) {
           const error = err instanceof Error ? err.message : String(err);
           log.error('TEST_CONFIG 失败', { error });
+          sendResponse({ success: false, error });
+        }
+        break;
+      }
+
+      case 'GET_TOKEN_STATUS': {
+        sendResponse(await getTokenStatus());
+        break;
+      }
+
+      case 'REFRESH_TOKEN_STATUS': {
+        try {
+          const storedConfig = await getConfig();
+          const mergedConfig = await resolveActiveTabConfig(storedConfig);
+
+          if (!mergedConfig.server.secret) {
+            throw new Error('后端密钥未配置');
+          }
+          const data = await testBackendConnection(mergedConfig.server);
+          const status = await saveTokenStatus(data);
+          sendResponse({ success: true, data: status });
+        } catch (err) {
+          const error = err instanceof Error ? err.message : String(err);
+          log.error('REFRESH_TOKEN_STATUS 失败', { error });
           sendResponse({ success: false, error });
         }
         break;
@@ -329,6 +351,32 @@ export default defineBackground(() => {
     } catch {
       return null;
     }
+  }
+
+  /** 在传入配置之上合并当前标签页的页面注入配置（如有） */
+  async function resolveActiveTabConfig(base: Config): Promise<Config> {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!activeTab?.id) return base;
+    const injectedConfig = await getInjectedConfig(activeTab.id);
+    log.debug('合并页面注入配置', { hasInjected: !!injectedConfig });
+    return mergeWithInjectedConfig(base, injectedConfig);
+  }
+
+  /**
+   * 从当前用户信息接口响应中解析 token_expires_at 并缓存。
+   * 字段缺失或无法解析时按永久有效（expires_at 为 null）处理。
+   */
+  async function saveTokenStatus(meResponse: unknown): Promise<TokenStatus> {
+    const status: TokenStatus = {
+      expires_at: extractTokenExpiresAt(meResponse),
+      checked_at: new Date().toISOString(),
+    };
+    try {
+      await setTokenStatus(status);
+    } catch (err) {
+      log.warn('缓存 Token 有效期状态失败', { error: (err as Error).message });
+    }
+    return status;
   }
 
   function mergeWithInjectedConfig(stored: Config, injected: Partial<Config> | null): Config {

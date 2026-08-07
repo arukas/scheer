@@ -110,6 +110,10 @@ body {
   color: var(--color-warning);
 }
 
+.popup-value.error {
+  color: var(--color-error);
+}
+
 .popup-value.muted {
   color: var(--color-text-muted);
   font-weight: 400;

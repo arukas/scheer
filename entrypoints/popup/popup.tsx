@@ -1,14 +1,48 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { sendMessage } from '../../src/shared/messaging';
-import type { CreateProductResponse } from '../../src/shared/messaging';
-import type { Config } from '../../src/shared/schema';
+import type { CreateProductResponse, RefreshTokenStatusResponse } from '../../src/shared/messaging';
+import type { Config, TokenStatus } from '../../src/shared/schema';
 import type { PageStatus } from '../../src/shared/platform';
 import { resolveEndpoint } from '../../src/shared/api';
+import { classifyTokenStatus } from '../../src/shared/token-status';
 import { localizeDocument, t } from '../../src/shared/i18n';
 import './style.css';
 
 localizeDocument('popupDocumentTitle');
+
+/** loading：等待首次查询；unknown：查询失败且无缓存 */
+type TokenState = 'loading' | 'unknown' | TokenStatus;
+
+function isServerConfigReady(config: Config): boolean {
+  return Boolean(
+    resolveEndpoint(config.server.base ?? '', config.server.create_product_endpoint) &&
+    resolveEndpoint(config.server.base ?? '', config.server.current_user_endpoint) &&
+    config.server.secret
+  );
+}
+
+/** 把 Token 有效期状态转成展示文案与样式级别 */
+function getTokenView(state: TokenState): { text: string; className: string } {
+  if (state === 'loading') return { text: t('tokenChecking'), className: 'muted' };
+  if (state === 'unknown') return { text: t('unknown'), className: 'muted' };
+
+  const view = classifyTokenStatus(state);
+  if (view.level === 'permanent') return { text: t('tokenPermanent'), className: 'success' };
+
+  const dateStr = view.expiresAt ? view.expiresAt.toLocaleDateString() : '';
+  if (view.level === 'expired') {
+    return { text: `⚠️ ${t('tokenExpiredOn', dateStr)}`, className: 'error' };
+  }
+
+  const text =
+    view.remainingDays >= 1
+      ? t('tokenExpiresInDays', [dateStr, String(view.remainingDays)])
+      : t('tokenExpiresInHours', [dateStr, String(Math.max(view.remainingHours, 1))]);
+  return view.level === 'warning'
+    ? { text: `⚠️ ${text}`, className: 'warning' }
+    : { text, className: '' };
+}
 
 function Popup() {
   const [status, setStatus] = useState<PageStatus | null>(null);
@@ -16,6 +50,7 @@ function Popup() {
   const [hasHostPermission, setHasHostPermission] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<CreateProductResponse | null>(null);
+  const [tokenState, setTokenState] = useState<TokenState>('loading');
 
   useEffect(() => {
     refresh();
@@ -66,8 +101,34 @@ function Popup() {
       setHasHostPermission(permission);
       setStatus(pageStatus);
       setConfig(cfg);
+      void refreshTokenStatus(cfg);
     } catch (err) {
       console.error('Popup 刷新失败', err);
+    }
+  }
+
+  /** 先读缓存的 Token 有效期状态，再向后端查询最新值 */
+  async function refreshTokenStatus(cfg: Config) {
+    if (!isServerConfigReady(cfg)) return;
+
+    try {
+      const cached = await sendMessage<TokenStatus | null>({ type: 'GET_TOKEN_STATUS' });
+      if (cached) setTokenState(cached);
+    } catch {
+      // 缓存读取失败时继续走实时查询
+    }
+
+    try {
+      const result = await sendMessage<RefreshTokenStatusResponse>({
+        type: 'REFRESH_TOKEN_STATUS',
+      });
+      if (result.success) {
+        setTokenState(result.data);
+      } else {
+        setTokenState((prev) => (prev === 'loading' ? 'unknown' : prev));
+      }
+    } catch {
+      setTokenState((prev) => (prev === 'loading' ? 'unknown' : prev));
     }
   }
 
@@ -95,14 +156,11 @@ function Popup() {
     }
   }
 
-  const configReady = Boolean(
-    config &&
-    resolveEndpoint(config.server.base ?? '', config.server.create_product_endpoint) &&
-    resolveEndpoint(config.server.base ?? '', config.server.current_user_endpoint) &&
-    config.server.secret
-  );
+  const configReady = Boolean(config && isServerConfigReady(config));
 
   const canCreate = configReady && hasHostPermission && status?.canExtract;
+
+  const tokenView = getTokenView(tokenState);
 
   return (
     <div className="popup">
@@ -149,6 +207,18 @@ function Popup() {
           </div>
         )}
       </section>
+
+      {configReady && (
+        <section className="popup-section">
+          <h2 className="popup-section-title">{t('remoteService')}</h2>
+          <div className="popup-status">
+            <div className="popup-row">
+              <span className="popup-label">{t('tokenValidity')}</span>
+              <span className={`popup-value ${tokenView.className}`}>{tokenView.text}</span>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="popup-section">
         <button

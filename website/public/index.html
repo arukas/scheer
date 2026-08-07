@@ -1187,6 +1187,7 @@
             <a href="#api-schema" data-i18n="fieldSchema">字段结构</a>
             <a href="#api-response" data-i18n="responseFormat">响应格式</a>
             <a href="#api-test" data-i18n="testConnection">测试连接</a>
+            <a href="#api-rate-limit" data-i18n="rateLimitHeaders">限流响应头</a>
             <a href="#api-config" data-i18n="configExample">配置示例</a>
           </aside>
 
@@ -1366,7 +1367,8 @@ Content-Type: application/json</code></pre>
             <section class="doc-section" id="api-test">
               <h3 data-i18n="testConnection">测试连接</h3>
               <p data-i18n="testConnectionText">
-                Options 页用此接口验证地址、鉴权和 JSON 响应是否正常。
+                Options 页用此接口验证地址、鉴权和 JSON 响应是否正常；扩展也会通过它读取 Token
+                有效期。
               </p>
               <div class="endpoint">
                 <span class="method get">GET</span>
@@ -1379,8 +1381,59 @@ Content-Type: application/json</code></pre>
                 <button class="copy" type="button" data-copy data-i18n="copy">复制</button>
                 <pre><code>{
   "id": "user-id",
-  "name": "Current User"
+  "name": "Current User",
+  "token_expires_at": "2026-09-01T00:00:00Z"
 }</code></pre>
+              </div>
+              <p data-i18n="tokenExpiryText">
+                可选字段 <code>token_expires_at</code>（ISO 8601 时间）用于告知扩展当前 Token
+                的过期时间。扩展会在 Popup 中展示有效期，剩余不足 3 天时显示告警标识；字段缺失、为
+                <code>null</code> 或无法解析时，按永久有效处理。
+              </p>
+            </section>
+
+            <section class="doc-section" id="api-rate-limit">
+              <h3 data-i18n="rateLimitHeaders">限流响应头</h3>
+              <p data-i18n="rateLimitText">
+                后端可在任意接口的响应中返回以下 Header。扩展会全局检查每次响应中的
+                <code>X-RateLimit-Remaining</code>：剩余额度为 0 或不超过 5
+                时写入告警日志，不影响当次请求结果。未返回这些 Header 时不做任何检查。
+              </p>
+              <div class="code-block">
+                <button class="copy" type="button" data-copy data-i18n="copy">复制</button>
+                <pre><code>X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 4
+X-RateLimit-Reset: 1767225600</code></pre>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="responseHeader">响应头</th>
+                      <th data-i18n="description">说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>X-RateLimit-Limit</code></td>
+                      <td data-i18n="rateLimitLimitDesc">每个限流窗口的总配额</td>
+                    </tr>
+                    <tr>
+                      <td><code>X-RateLimit-Remaining</code></td>
+                      <td data-i18n="rateLimitRemainingDesc">
+                        当前窗口剩余可用次数；为 0 或不超过 5 时扩展记录告警日志
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>X-RateLimit-Reset</code></td>
+                      <td data-i18n="rateLimitResetDesc">配额重置时间（Unix 秒级时间戳）</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="note" data-i18n="rateLimitNote">
+                这些 Header 均为可选。建议在 <code>/scheer/products</code> 与
+                <code>/scheer/me</code> 的响应中都返回，以便扩展在任意请求后都能感知额度变化。
               </div>
             </section>
 

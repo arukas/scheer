@@ -107,9 +107,21 @@ export const translations = {
     errorResponseText:
       'For HTTP 4xx / 5xx responses, return an error message that can be shown directly to the user:',
     testConnectionText:
-      'The Settings page uses this endpoint to validate the URL, authentication, and JSON response.',
+      'The Settings page uses this endpoint to validate the URL, authentication, and JSON response; the extension also reads the token expiry from it.',
     testResponseText:
       'Return any valid JSON. The extension only checks for HTTP 2xx, a non-empty body, and valid JSON.',
+    tokenExpiryText:
+      'The optional <code>token_expires_at</code> field (ISO 8601) tells the extension when the current token expires. The popup shows the validity and displays a warning when less than 3 days remain; a missing, <code>null</code>, or unparsable field is treated as permanent.',
+    rateLimitHeaders: 'Rate limit headers',
+    rateLimitText:
+      'Your backend may return these headers on any endpoint response. The extension checks <code>X-RateLimit-Remaining</code> on every response and writes a warning log when the remaining quota is 0 or at most 5, without affecting the current request. When these headers are absent, no checks are made.',
+    responseHeader: 'Header',
+    rateLimitLimitDesc: 'Total quota per rate-limit window',
+    rateLimitRemainingDesc:
+      'Remaining calls in the current window; the extension logs a warning when this is 0 or at most 5',
+    rateLimitResetDesc: 'Quota reset time (Unix timestamp in seconds)',
+    rateLimitNote:
+      'All of these headers are optional. Return them on both <code>/scheer/products</code> and <code>/scheer/me</code> responses so the extension can track quota after any request.',
     extensionConfigExample: 'Extension configuration example',
     configPasteText: 'The Settings page accepts JSON or the equivalent Base64-encoded JSON.',
     stepImplementTitle: 'Implement two endpoints',
@@ -281,9 +293,21 @@ export const translations = {
     errorResponseText:
       'Para respuestas HTTP 4xx / 5xx, devuelve un mensaje que pueda mostrarse directamente al usuario:',
     testConnectionText:
-      'La página de configuración usa este endpoint para validar la URL, la autenticación y la respuesta JSON.',
+      'La página de configuración usa este endpoint para validar la URL, la autenticación y la respuesta JSON; la extensión también lee la caducidad del token desde él.',
     testResponseText:
       'Devuelve cualquier JSON válido. La extensión solo comprueba HTTP 2xx, un cuerpo no vacío y JSON válido.',
+    tokenExpiryText:
+      'El campo opcional <code>token_expires_at</code> (ISO 8601) indica a la extensión cuándo caduca el token actual. El popup muestra la validez y avisa cuando quedan menos de 3 días; si el campo falta, es <code>null</code> o no se puede interpretar, se considera permanente.',
+    rateLimitHeaders: 'Cabeceras de límite de uso',
+    rateLimitText:
+      'Tu backend puede devolver estas cabeceras en cualquier respuesta. La extensión comprueba <code>X-RateLimit-Remaining</code> en cada respuesta y escribe un aviso en el registro cuando la cuota restante es 0 o como máximo 5, sin afectar a la petición en curso. Si no hay cabeceras, no se hace ninguna comprobación.',
+    responseHeader: 'Cabecera',
+    rateLimitLimitDesc: 'Cuota total por ventana de límite',
+    rateLimitRemainingDesc:
+      'Llamadas restantes en la ventana actual; la extensión registra un aviso cuando es 0 o quedan 5 o menos',
+    rateLimitResetDesc: 'Momento de reinicio de la cuota (timestamp Unix en segundos)',
+    rateLimitNote:
+      'Todas estas cabeceras son opcionales. Devuélvelas en las respuestas de <code>/scheer/products</code> y <code>/scheer/me</code> para que la extensión pueda seguir la cuota tras cualquier petición.',
     extensionConfigExample: 'Ejemplo de configuración de la extensión',
     configPasteText:
       'La página de configuración acepta JSON o el JSON equivalente codificado en Base64.',
