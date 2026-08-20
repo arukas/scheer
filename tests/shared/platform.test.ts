@@ -91,6 +91,19 @@ describe('isAllowedProductUrl', () => {
     expect(isAllowedProductUrl('https://amazon.evil.com/dp/B0GRK1N94H')).toBe(false);
     expect(isAllowedProductUrl('https://notamazon.com/dp/B0GRK1N94H')).toBe(false);
   });
+
+  it('allows 1688 offer pages with numeric offerId', () => {
+    expect(isAllowedProductUrl('https://detail.1688.com/offer/987833987148.html')).toBe(true);
+    expect(
+      isAllowedProductUrl('https://detail.1688.com/offer/987833987148.html?spm=a26352.13672862')
+    ).toBe(true);
+  });
+
+  it('rejects 1688 non-offer pages and lookalike hosts', () => {
+    expect(isAllowedProductUrl('https://detail.1688.com/offer/abc.html')).toBe(false);
+    expect(isAllowedProductUrl('https://www.1688.com/')).toBe(false);
+    expect(isAllowedProductUrl('https://1688.com.evil.com/offer/123.html')).toBe(false);
+  });
 });
 
 describe('detectPlatformByUrl', () => {
@@ -110,6 +123,16 @@ describe('detectPlatformByUrl', () => {
 
   it('returns null for amazon non-product pages', () => {
     expect(detectPlatformByUrl('https://www.amazon.com/s?k=ring')).toBeNull();
+  });
+
+  it('detects 1688 offer pages with query params', () => {
+    expect(detectPlatformByUrl('https://detail.1688.com/offer/987833987148.html')).toBe(
+      'alibaba1688'
+    );
+    expect(detectPlatformByUrl('https://detail.1688.com/offer/123.html?spm=a26352&foo=bar')).toBe(
+      'alibaba1688'
+    );
+    expect(detectPlatformByUrl('https://detail.1688.com/')).toBeNull();
   });
 
   it('returns null for unknown custom domain', () => {

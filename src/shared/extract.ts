@@ -14,6 +14,7 @@ import { extractShoplazzaProduct } from './extractors/shoplazza';
 import { extractShopbaseProduct } from './extractors/shopbase';
 import { extractTiktokProduct } from './extractors/tiktok';
 import { extractAmazonProduct } from './extractors/amazon';
+import { extractAlibaba1688Product } from './extractors/alibaba1688';
 import { extractJsonLdProduct } from './extractors/jsonld';
 
 const log = createLogger('shared/extract');
@@ -46,6 +47,8 @@ export async function extractProduct(
       return extractTiktokProduct(url, doc);
     case 'amazon':
       return extractAmazonProduct(url, doc);
+    case 'alibaba1688':
+      return extractAlibaba1688Product(url, doc);
     case 'wordpress':
       // WordPress 独立站通常带有 JSON-LD Product 结构化数据，作为兜底采集
       return extractJsonLdProduct(url, 'wordpress', doc);

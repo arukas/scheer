@@ -29,6 +29,32 @@ const PRODUCT_PATH_SEGMENTS = ['products', 'product'];
 /** Amazon ASIN：10 位字母数字（书籍为 10 位 ISBN） */
 const AMAZON_ASIN_RE = /^[A-Z0-9]{10}$/;
 
+/** 1688 商品详情页路径：/offer/<数字 offerId>.html */
+const ALIBABA1688_OFFER_RE = /^\/offer\/(\d+)\.html$/i;
+
+/**
+ * 判断是否为 1688 商品详情站 host。
+ * 目前仅支持 detail.1688.com（PC 详情页），m.1688.com 等移动端页面结构不同，暂不支持。
+ */
+export function isAlibaba1688Host(host: string): boolean {
+  return host.toLowerCase() === 'detail.1688.com';
+}
+
+/**
+ * 从 1688 URL 提取 offerId。形态：/offer/<offerId>.html（query 参数不影响）。
+ * 未命中返回 null。
+ */
+export function extractAlibaba1688OfferIdFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (!isAlibaba1688Host(u.hostname)) return null;
+    const match = u.pathname.match(ALIBABA1688_OFFER_RE);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 function isTikTokHost(host: string): boolean {
   const h = host.toLowerCase();
   return h.includes('tiktok') || h.includes('.tk');
@@ -104,6 +130,7 @@ export function extractAmazonAsinFromUrl(url: string): string | null {
  * - 路径需包含 /products/ 或 /product/
  * - TikTok 相关域名（host 含 tiktok 或 .tk）豁免路径检查
  * - Amazon 站点（含国际站）要求 /dp/<ASIN> 或 /gp/product/<ASIN>
+ * - 1688（detail.1688.com）要求 /offer/<offerId>.html
  */
 export function isAllowedProductUrl(url: string): boolean {
   try {
@@ -113,6 +140,7 @@ export function isAllowedProductUrl(url: string): boolean {
     const host = u.hostname.toLowerCase();
     if (isTikTokHost(host)) return true;
     if (isAmazonHost(host)) return extractAmazonAsinFromUrl(url) !== null;
+    if (isAlibaba1688Host(host)) return extractAlibaba1688OfferIdFromUrl(url) !== null;
 
     const path = u.pathname.toLowerCase();
     return path.includes('/products/') || path.includes('/product/');
@@ -163,6 +191,11 @@ export function detectPlatformByUrl(url: string): PlatformKey | null {
     // Amazon（含国际站），需为商品详情页
     if (isAmazonHost(host) && extractAmazonAsinFromUrl(url) !== null) {
       return 'amazon';
+    }
+
+    // 1688 商品详情页 /offer/<offerId>.html
+    if (isAlibaba1688Host(host) && extractAlibaba1688OfferIdFromUrl(url) !== null) {
+      return 'alibaba1688';
     }
 
     return null;

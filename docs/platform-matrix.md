@@ -20,21 +20,23 @@
 | ShopLazza   | SaaS 建站 | `/api/products/{id}` + DOM 详情          | 否         | 已实现 | API + DOM 混合采集                  |
 | TikTok Shop | 社交电商  | `<script id="__MODERN_ROUTER_DATA__">`   | 否         | 已实现 | 区域限制 / captcha 会明确报错       |
 | Amazon      | 综合电商  | `twister-js-init-dpx-data` + 固定 DOM ID | 否         | 已实现 | 规则详见 `docs/amazon-extractor.md` |
+| 1688        | 综合批发  | 内联 script `window.context` 注水对象    | 否         | 已实现 | 详情 HTML 走 detailUrl CDN 二次请求 |
 
 ## 平台代码对照
 
 提交给后端时使用的平台代码：
 
-| 平台        | 扩展内部 key | 后端代码（参考 PHP） |
-| ----------- | ------------ | -------------------- |
-| Shopify     | `shopify`    | `shopify`            |
-| NewShop     | `newshop`    | `wshop`              |
-| ShopBase    | `shopbase`   | `shopbase`           |
-| ShopLine    | `shopline`   | `shopline`           |
-| XShopPy     | `xshoppy`    | `xshoppy`            |
-| ShopLazza   | `shoplazza`  | `shoplazza`          |
-| TikTok Shop | `tiktok`     | `tiktok`             |
-| Amazon      | `amazon`     | `amazon`             |
+| 平台        | 扩展内部 key  | 后端代码（参考 PHP） |
+| ----------- | ------------- | -------------------- |
+| Shopify     | `shopify`     | `shopify`            |
+| NewShop     | `newshop`     | `wshop`              |
+| ShopBase    | `shopbase`    | `shopbase`           |
+| ShopLine    | `shopline`    | `shopline`           |
+| XShopPy     | `xshoppy`     | `xshoppy`            |
+| ShopLazza   | `shoplazza`   | `shoplazza`          |
+| TikTok Shop | `tiktok`      | `tiktok`             |
+| Amazon      | `amazon`      | `amazon`             |
+| 1688        | `alibaba1688` | 待后端确认           |
 
 > 发送层如需兼容旧 PHP，可将 `newshop` 转为 `wshop`。
 
@@ -111,6 +113,19 @@
   - 价格解析内置 `parseAmazonPrice`，兼容国际站逗号小数与货币代码
   - 书籍/媒体类目（`#tmmSwatches`）v1 按单变体处理
   - 详细规则与边界情况见 [`docs/amazon-extractor.md`](amazon-extractor.md)
+
+### 1688
+
+- **入口**：内联 script `window.context=(...)(window.contextPath, { ... })` 第二个实参（注水对象）。
+- **读取方式**：content script 读 script 文本；对象为 JS 字面量（含未加引号数字键），平衡括号扫描 + 数字键补引号后 `JSON.parse`。
+- **URL 识别**：`detail.1688.com/offer/<offerId>.html`（query 参数不影响）。
+- **注意**：
+  - 标题 / 图片 / 规格在 `result.global.globalData.model.offerDetail`；SKU 价格库存在 `result.data.Root.fields.dataJson.skuModel.skuInfoMap`
+  - `specAttrs` 以 `&gt;` 分隔，需解码 HTML 实体后按 `>` 拆分对齐规格维度
+  - 图片取 `offerDetail.imageList`（主图在前，后接 SKU 色卡图），variant 通过色卡图 URL 关联 `source_image_id`
+  - 详情 HTML：`result.data.description.fields.detailUrl`（itemcdn.tmall.com，响应带 CORS \*），剥掉 `var offer_details=` 前缀取 `content`，再清洗懒加载属性
+  - 价格为批发阶梯价，SKU 级取 `discountPrice ?? price`；原始 `price` 更高时输出为划线价
+  - 件重 `productPackInfo.fields.unitWeight` 单位为 kg，转克重乘 1000
 
 ## 评论采集（v2）
 
