@@ -43,6 +43,13 @@ function buildContextScript(): string {
         "offerId": 987833987148,
         "subject": "女童裤子2026秋季新款儿童喇叭裤",
         "leafCategoryName": "童裤",
+        "featureAttributes": [
+          {"name": "品牌", "value": "贝淘芽", "values": ["贝淘芽"]},
+          {"name": "货号", "value": "D25233", "values": ["D25233"]},
+          {"name": "适合季节", "value": "春秋,春季,秋季", "values": ["春秋", "春季", "秋季"]},
+          {"name": "颜色", "value": "杏色,粉色", "values": ["杏色", "粉色"]},
+          {"name": "适合身高", "value": "80cm,90cm", "values": ["80cm", "90cm"]}
+        ],
         "mainImageList": [
           {"fullPathImageURI": "https://cbu01.alicdn.com/img/ibank/main1.jpg"},
           {"fullPathImageURI": "https://cbu01.alicdn.com/img/ibank/main2.jpg"}
@@ -164,19 +171,31 @@ describe('extractAlibaba1688Product', () => {
     const payload = await extractAlibaba1688Product(OFFER_URL, doc);
 
     expect(global.fetch).toHaveBeenCalledWith(DETAIL_URL, expect.anything());
+    // 属性表在前，详情图在后；与规格同名的 颜色/适合身高 不进入属性表
     expect(payload.product.description_html).toBe(
-      '<div><img src="https://cbu01.alicdn.com/img/ibank/detail1.jpg"></div>'
+      '<table><tbody>' +
+        '<tr><th>品牌</th><td>贝淘芽</td></tr>' +
+        '<tr><th>货号</th><td>D25233</td></tr>' +
+        '<tr><th>适合季节</th><td>春秋,春季,秋季</td></tr>' +
+        '</tbody></table>' +
+        '<div><img src="https://cbu01.alicdn.com/img/ibank/detail1.jpg"></div>'
     );
   });
 
-  it('succeeds without description when detail fetch fails', async () => {
+  it('keeps attributes table as description when detail fetch fails', async () => {
     const doc = createDocWithContext(buildContextScript());
     global.fetch = vi.fn().mockRejectedValue(new Error('network error'));
 
     const payload = await extractAlibaba1688Product(OFFER_URL, doc);
 
     expect(payload.product.title).toBe('女童裤子2026秋季新款儿童喇叭裤');
-    expect(payload.product.description_html).toBeUndefined();
+    expect(payload.product.description_html).toBe(
+      '<table><tbody>' +
+        '<tr><th>品牌</th><td>贝淘芽</td></tr>' +
+        '<tr><th>货号</th><td>D25233</td></tr>' +
+        '<tr><th>适合季节</th><td>春秋,春季,秋季</td></tr>' +
+        '</tbody></table>'
+    );
   });
 
   it('falls back to default variant with first tier price when skuInfoMap is empty', async () => {

@@ -126,6 +126,7 @@
   - 详情 HTML：`result.data.description.fields.detailUrl`（itemcdn.tmall.com，响应带 CORS \*），剥掉 `var offer_details=` 前缀取 `content`，再清洗懒加载属性
   - 价格为批发阶梯价，SKU 级取 `discountPrice ?? price`；原始 `price` 更高时输出为划线价
   - 件重 `productPackInfo.fields.unitWeight` 单位为 kg，转克重乘 1000
+  - 商品属性（`offerDetail.featureAttributes`）渲染为 `<table>` 拼在详情 HTML 前；与规格维度同名的项（如 颜色/适合身高）剔除，避免与 options 重复
 
 ## 评论采集（v2）
 

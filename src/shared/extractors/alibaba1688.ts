@@ -215,6 +215,47 @@ async function fetchDescriptionHtml(
   }
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * 商品属性表（offerDetail.featureAttributes，如 品牌/货号/面料）。
+ * 剔除与规格维度同名的项（如 颜色/适合身高已在 options 中，避免重复），
+ * 拼在详情 HTML 前面，作为 description_html 的一部分。
+ */
+function buildAttributesHtml(
+  offerDetail: RawObject | undefined,
+  skuProps: SkuProp[]
+): string | undefined {
+  const skuNames = new Set(skuProps.map((p) => p.name));
+  const rows: string[] = [];
+
+  for (const raw of asArray(offerDetail?.featureAttributes)) {
+    const attr = asObject(raw);
+    const name = toStringOrUndefined(attr?.name)?.trim();
+    if (!name || skuNames.has(name)) continue;
+
+    let value = toStringOrUndefined(attr?.value)?.trim();
+    if (!value) {
+      value = asArray(attr?.values)
+        .map((v) => toStringOrUndefined(v))
+        .filter((v): v is string => Boolean(v))
+        .join(',');
+    }
+    if (!value) continue;
+
+    rows.push(`<tr><th>${escapeHtml(name)}</th><td>${escapeHtml(value)}</td></tr>`);
+  }
+
+  if (rows.length === 0) return undefined;
+  return `<table><tbody>${rows.join('')}</tbody></table>`;
+}
+
 // ============================================================================
 // 字段转换
 // ============================================================================
@@ -419,7 +460,9 @@ export async function extractAlibaba1688Product(
   }
 
   const detailUrl = toStringOrUndefined(getPath(data, 'description', 'fields', 'detailUrl'));
-  const descriptionHtml = await fetchDescriptionHtml(detailUrl, doc);
+  const detailHtml = await fetchDescriptionHtml(detailUrl, doc);
+  const attributesHtml = buildAttributesHtml(offerDetail, skuProps);
+  const descriptionHtml = [attributesHtml, detailHtml].filter(Boolean).join('') || undefined;
 
   const vendor = toStringOrUndefined(
     getPath(data, 'productTitle', 'fields', 'shopInfo', 'companyName')
