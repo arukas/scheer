@@ -42,17 +42,17 @@
 
 ### 2.1 平台清单
 
-| 平台            | 类型      | 说明                                                               |
-| --------------- | --------- | ------------------------------------------------------------------ |
-| **Shopify**     | SaaS 建站 | 行业基准，结构最规整                                               |
-| **NewShop**     | SaaS 建站 | NewShop / WShop 自建站                                             |
-| **ShopBase**    | SaaS 建站 | POD / 电商建站                                                     |
-| **ShopLine**    | SaaS 建站 |                                                                    |
-| **XShopPy**     | SaaS 建站 |                                                                    |
-| **ShopLazza**   | SaaS 建站 |                                                                    |
-| **TikTok Shop** | 社交电商  | `shop.tiktok.com` 商品页                                           |
-| **WordPress**   | 自建站    | WooCommerce / Elementor 等，识别到即标记为未实现                   |
-| **ShadowShop**  | 自建站    | 脚本 host 含 storedfilezone.com / plfaib.com，识别到即标记为未实现 |
+| 平台            | 类型      | 说明                                                    |
+| --------------- | --------- | ------------------------------------------------------- |
+| **Shopify**     | SaaS 建站 | 行业基准，结构最规整                                    |
+| **NewShop**     | SaaS 建站 | NewShop / WShop 自建站                                  |
+| **ShopBase**    | SaaS 建站 | POD / 电商建站                                          |
+| **ShopLine**    | SaaS 建站 |                                                         |
+| **XShopPy**     | SaaS 建站 |                                                         |
+| **ShopLazza**   | SaaS 建站 |                                                         |
+| **TikTok Shop** | 社交电商  | `shop.tiktok.com` 商品页                                |
+| **WordPress**   | 自建站    | WooCommerce / Elementor 等，识别后走 JSON-LD 兜底采集器 |
+| **ShadowShop**  | 自建站    | 脚本 host 含 storedfilezone.com / plfaib.com            |
 
 > ⚠️ **以上 9 个平台各自独立，互不共用抓取逻辑。** 不要假设 NewShop / ShopBase / ShopLine / XShopPy / ShopLazza / WordPress / ShadowShop 兼容 Shopify 的接口或 DOM。既有 PHP 参考项目已覆盖 `Shopify / NewShop / ShopBase / ShopLine / XShopPy / ShopLazza` 6 个平台；`TikTok / WordPress / ShadowShop` 是本扩展新增适配或识别项。
 
@@ -69,8 +69,8 @@
 | **XShopPy**     | ✅ 页面读 `input.product-id`（`body > div.PageContainer.J-PageContainer > input.product-id`）→ **POST** `/buyer/product/pop-detail`（JSON body: `product_id`）                                        | v2                 |
 | **ShopLazza**   | ✅ **混合**：页面 `<input type="hidden" name="product_id">` → `/api/products/{id}` 取主体；详情描述读 DOM `.product-info__desc-tab-content`；API 图片 `src` 前补 `https:`，详情 HTML 懒加载属性需清洗 | v2                 |
 | **TikTok Shop** | ✅ DOM `<script id="__MODERN_ROUTER_DATA__">` 取 JSON                                                                                                                                                 | v2                 |
-| **WordPress**   | ✅ **HTML 识别**：`<head>` 中 `<link href>` 包含 `wp-content` 即识别为 WordPress；采集器待实现                                                                                                        | 待实现             |
-| **ShadowShop**  | ✅ **HTML 识别**：脚本 host 含 `storedfilezone.com` 或 `plfaib.com` 即识别为 ShadowShop；采集器待实现                                                                                                 | 待实现             |
+| **WordPress**   | ✅ **HTML 识别**：`<head>` 中 `<link href>` 包含 `wp-content` 即识别为 WordPress；采集走 JSON-LD 兜底抓取器                                                                                           | v2                 |
+| **ShadowShop**  | ✅ **HTML 识别**：脚本 host 含 `storedfilezone.com` 或 `plfaib.com` 即识别为 ShadowShop；采集读 `window.__INITIAL_STATE__` 注水对象                                                                   | v2                 |
 
 > 评论入口全部延后到 v2。
 
@@ -118,6 +118,8 @@
 4. 商品页 HTML 命中后按顺序识别：ShopLazza hidden `product_id` → ShopLine `__PRELOAD_STATE__.product=...` → ShopBase `__INITIAL_STATE__ = JSON.parse(...)` → XShopPy `input.product-id`。
 5. Cloudflare 403 或无匹配时返回“不支持”；这只是 PHP 服务端爬虫行为，浏览器扩展在用户页内抓取，优先复用同源页面数据，不需要代理。
 
+> 扩展的实际探测流程与上述 PHP 参考不同：`detectPlatform`（`src/shared/platform.ts`）先按 URL 规则识别（TikTok / `myshopify.com` / Amazon / 1688），再走 HTML 指纹检测，顺序为 ShopLine → NewShop → Shopify → WordPress（`<link href>` 含 `wp-content`）→ ShadowShop → ShopLazza → ShopBase → XShopPy（script src 含 `/liquid/buyer/`）→ Amazon；不再主动调用 API 探测（`detectPlatformByApi` 已废弃）。
+
 ---
 
 ## 3. 总体架构
@@ -148,8 +150,10 @@ v1 只内置商品采集；评论采集等待 v2。插件监控符合 URL 规则
 │   ┌─────────────────────────────────────────────────────────┐   │
 │   │                Content Script(s)                         │   │
 │   │  ┌────────────────────────────────────────────────────┐  │   │
-│   │  │  7 个独立抓取器（Shopify / NewShop / ShopBase /     │  │   │
-│   │  │   ShopLine / XShopPy / ShopLazza / TikTok）         │  │   │
+│   │  │  11 个独立抓取器（Shopify / NewShop / ShopBase /    │  │   │
+│   │  │   ShopLine / XShopPy / ShopLazza / TikTok /         │  │   │
+│   │  │   WordPress / ShadowShop / Amazon / 1688，          │  │   │
+│   │  │   另有 JSON-LD 兜底抓取器）                         │  │   │
 │   │  │  每个抓取器 = 商品采集 + 字段转换（评论 v2）        │  │   │
 │   │  └────────────────────────────────────────────────────┘  │   │
 │   │             XHR/Fetch 拦截器（可选，复用页面内 API）     │   │
@@ -186,11 +190,11 @@ v1 只内置商品采集；评论采集等待 v2。插件监控符合 URL 规则
 3. **DOM 选择器**（兜底）
    - 平台特定的 CSS 选择器（规则以 JSON 数据形式维护）
 
-### 4.2 抓取器结构（7 个，各自独立）
+### 4.2 抓取器结构（11 个，各自独立）
 
 每个平台一个抓取器，内部职责：
 
-- **平台识别**：URL host → 平台特征指纹，区分 7 个平台、互不混淆；
+- **平台识别**：URL host → 平台特征指纹，区分 11 个平台、互不混淆；
 - **商品采集**：按本平台的数据入口提取，输出**通用 Product 对象**（见 §6.1）；
 - **评论采集**：v2 再做；v1 不实现；
 - **字段转换**：本平台原始字段 → 通用 schema，规则与参考项目的 crawler 分支对齐（见 §7）。
@@ -282,7 +286,7 @@ Content-Type: application/json
 ```jsonc
 {
   // 以下外层字段不入商品三表，后端写采集日志
-  "platform": "shopify",            // (采) shopify|newshop|shopbase|shopline|xshoppy|shoplazza|tiktok
+  "platform": "shopify",            // (采) shopify|newshop|shopbase|shopline|xshoppy|shoplazza|tiktok|wordpress|shadowshop|amazon|alibaba1688
   "source_url": "https://...",       // (采) 当前商品页 URL
   "source_product_id": "123456789",  // (采) 平台商品 ID；可为空
 
@@ -446,35 +450,37 @@ v1 不定义。评论等待 v2。
 
 ### 7.2 各平台转换规则
 
-| 平台      | Product                                                                                                                                                                                                 | Options                                                                                                                                      | Images                                                                                     | Variants                                                                                                                                                                                                                                                                           |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shopify   | 直接取 Shopify JSON `product` 的 Product 白名单字段                                                                                                                                                     | 删除每个 option 的 `id`、`product_id`                                                                                                        | 取 Image 白名单；position 按返回顺序重排；保留源 image id 只用于 variant `image_id` 映射   | 取 Variant 白名单；position 重排；`image_id` 映射到新图片                                                                                                                                                                                                                          |
-| NewShop   | `title/post_content/tags/variant_attrs/slug/content` → `title/description_html/options/handle`；`handle=slug`；`description_html=post_content ?? content ?? ""`                                         | `variant_attrs`：`position=序号`，`values=value`，删除 `value/is_visible/is_variation/is_taxonomy`；无规格则默认 `Title / Default Title`     | `gallery`：`id=ID`，`src=url`，`type=(media_content_type === "video" ? "video" : "image")` | `variants`：`image_id=feature_image.ID`，`compare_at_price=regular_price`，`options` 从 `attrs` 按 option name 匹配；无 variants 时用商品 `price/sku/regular_price` 生成 Default Title；`sku` 第一个 `-` 前 50 字符；`compare_at_price` 空或低于 `price` 时置 `0`                  |
-| ShopBase  | `description` → `description_html`，另取 `handle/product_type/published/published_scope/tags/title/vendor`                                                                                              | `options[].values[].name` 转为 values；规格值 ID 在 variant 中反查成名称                                                                     | `images[]` 取 `alt/src/type`，position 重排，保留源 image id 做映射                        | `weight=0`，`weight_unit=g`；`options` 从 option value id 反查名称；`image_id` 映射                                                                                                                                                                                                |
-| ShopLine  | `spu.title` → `title`；详情优先 DOM `.mce-content-body`，否则 `productSeo.desc`；`handle` 取 `productSeo.url` 最后一段                                                                                  | `sku.skuAttributeMap`：`name=defaultName`，`position=attributeWeight`，`values=skuAttributeValueMap.defaultValue`，按 position 排序          | `spu.imageList`：`src=url`，`alt=alt`，position 重排                                       | `sku.skuList`：`price/originPrice` 分为单位，除以 100；`sku=itemNo`；`options` 按 `skuAttributeIds.attributeWeight` 匹配；`weightUnit` 默认 `g`；单 variant 时强制 `Title / Default Title`                                                                                         |
-| XShopPy   | `/buyer/product/pop-detail` 成功后取返回 `data` 的 Product 白名单字段；`description_html` 清洗 `data-original` 图片                                                                                     | `attribute`：`name=specName`，`values=specItems`，`position=序号`，删除 `specName/specItems/specCodes`；无规格则默认 `Title / Default Title` | `images[].file_preview` → `src`，position 重排，type 默认 `image`                          | `sku_list`：`sku=sku_code`；`spec` JSON 按 option name 填 `options`；无规格则 `Default Title`                                                                                                                                                                                      |
-| ShopLazza | API `data.product` 取 Product 白名单；`description_html` 优先 DOM `.product-info__desc-tab-content` 清洗结果，否则 `meta_description`                                                                   | 删除 option 的 `id`；无规格则默认 `Title / Default Title`                                                                                    | API 图片 `src` 前补 `https:`，position 重排，type 默认 `image`                             | `weight` 空则 `0`；单 variant 且无 `options` 时设 `Default Title`；variant image 按 `https:` + `image.src` 映射到图片                                                                                                                                                              |
-| TikTok    | `product_model.name` → `title`；`handle` 从 URL 的 `product/products/pdp` 后一段取，若是 18-20 位纯数字则用 title slug；`description_html` 由 `product_properties` 表格 + `description` block HTML 组合 | `sale_properties`：`name=property_name`，`values=property_values[].property_value_name`，position 重排                                       | `product_model.images[].url_list[0]` → `src`，去掉 query，position 重排，type 默认 `image` | `skus`：`sku=sku_name`；`property_pairs[].sku_property_value_name` → `options`；title 用规格值 `/` 拼接；价格从 `promotion_model.promotion_product_price.skus_price` 取 `seller_subtotal_deduction`；`compare_at_price=price / discount_decimal`；无有效规格时生成 `Default Title` |
+| 平台      | Product                                                                                                                                                                                                                                                      | Options                                                                                                                                  | Images                                                                                                                                    | Variants                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shopify   | 直接取 Shopify JSON `product` 的 Product 白名单字段                                                                                                                                                                                                          | 删除每个 option 的 `id`、`product_id`                                                                                                    | 取 Image 白名单；position 按返回顺序重排；保留源 image id 只用于 variant `image_id` 映射                                                  | 取 Variant 白名单；position 重排；`image_id` 映射到新图片                                                                                                                                                                                                                                                                                                                                                 |
+| NewShop   | `title/post_content/tags/variant_attrs/slug/content` → `title/description_html/options/handle`；`handle=slug`；`description_html=post_content ?? content ?? ""`                                                                                              | `variant_attrs`：`position=序号`，`values=value`，删除 `value/is_visible/is_variation/is_taxonomy`；无规格则默认 `Title / Default Title` | `gallery`：`id=ID`，`src=url`，`type=(media_content_type === "video" ? "video" : "image")`                                                | `variants`：`image_id=feature_image.ID`，`compare_at_price=regular_price`，`options` 从 `attrs` 按 option name 匹配；无 variants 时用商品 `price/sku/regular_price` 生成 Default Title；`sku` 第一个 `-` 前 50 字符；`compare_at_price` 空或低于 `price` 时置 `0`                                                                                                                                         |
+| ShopBase  | `description` → `description_html`，另取 `handle/product_type/published/published_scope/tags/title/vendor`                                                                                                                                                   | `options[].values[].name` 转为 values；规格值 ID 在 variant 中反查成名称                                                                 | `images[]` 取 `alt/src/type`，position 重排，保留源 image id 做映射                                                                       | `weight=0`，`weight_unit=g`；`options` 从 option value id 反查名称；`image_id` 映射                                                                                                                                                                                                                                                                                                                       |
+| ShopLine  | `spu.title` → `title`；详情优先 DOM `.mce-content-body`，否则 `productSeo.desc`；`handle` 取 `productSeo.url` 最后一段                                                                                                                                       | `sku.skuAttributeMap`：`name=defaultName`，`position=attributeWeight`，`values=skuAttributeValueMap.defaultValue`，按 position 排序      | `spu.imageList`：`src=url`，`alt=alt`，position 重排                                                                                      | `sku.skuList`：`price/originPrice` 分为单位，除以 100；`sku=itemNo`；`options` 按 `skuAttributeIds.attributeWeight` 匹配；`weightUnit` 默认 `g`；单 variant 时强制 `Title / Default Title`                                                                                                                                                                                                                |
+| XShopPy   | `/buyer/product/pop-detail` 成功后取返回 `data`：`title=data.title`，`handle=data.handler`，`description_html=data.body_html`（清洗 `data-original` 图片、`//` 开头协议相对 URL 补 `https:`）；`vendor/product_type/tags/published_scope` 一律不提交（置空） | `attribute`：`name=specName`，`values=specItems`，`position` 从 1 顺序编号；无规格则默认 `Title / Default Title`                         | `default_image` 优先放首位，`images[]` 按 `file_id` 去重；`src=file_preview`，`source_image_id=file_id`，position 重排，type 默认 `image` | `sku_list`：`sku=sku_code`，`barcode=upc`，`grams/weight/weight_unit` 透传，`price/compare_at_price` 格式化为两位小数字符串；`spec` JSON 按 option name 填 `options`；variant 图片取 `sku.image.file_id ?? sku.image_id`，必须存在于 images 列表否则丢弃；`title` 空回退 `Default Title`；无 `sku_list` 时用商品级 `price` 生成单个 `Default Title` variant；单 variant 无 options 时强制 `Default Title` |
+| ShopLazza | API `data.product` 取 Product 白名单；`description_html` 优先 DOM `.product-info__desc-tab-content` 清洗结果，否则 `meta_description`                                                                                                                        | 删除 option 的 `id`；无规格则默认 `Title / Default Title`                                                                                | API 图片 `src` 前补 `https:`，position 重排，type 默认 `image`                                                                            | `weight` 空则 `0`；单 variant 且无 `options` 时设 `Default Title`；variant image 按 `https:` + `image.src` 映射到图片                                                                                                                                                                                                                                                                                     |
+| TikTok    | `product_model.name` → `title`；`handle` 从 URL 的 `product/products/pdp` 后一段取，若是 18-20 位纯数字则用 title slug；`description_html` 由 `product_properties` 表格 + `description` block HTML 组合                                                      | `sale_properties`：`name=property_name`，`values=property_values[].property_value_name`，position 重排                                   | `product_model.images[].url_list[0]` → `src`，去掉 query，position 重排，type 默认 `image`                                                | `skus`：`sku=sku_name`；`property_pairs[].sku_property_value_name` → `options`；title 用规格值 `/` 拼接；价格从 `promotion_model.promotion_product_price.skus_price` 取 `seller_subtotal_deduction`；`compare_at_price=price / discount_decimal`；无有效规格时生成 `Default Title`                                                                                                                        |
 
 ### 7.3 平台代码
 
 参考 `PlatformEnum::code()`：
 
-| 平台       | code         |
-| ---------- | ------------ |
-| Shopify    | `shopify`    |
-| NewShop    | `wshop`      |
-| XShopPy    | `xshoppy`    |
-| ShopLazza  | `shoplazza`  |
-| ShopLine   | `shopline`   |
-| ShopBase   | `shopbase`   |
-| TikTok     | `tiktok`     |
-| WordPress  | `wordpress`  |
-| ShadowShop | `shadowshop` |
-| Internal   | `内部服务`   |
-| Unknown    | `未知平台`   |
+| 平台       | code          |
+| ---------- | ------------- |
+| Shopify    | `shopify`     |
+| NewShop    | `wshop`       |
+| XShopPy    | `xshoppy`     |
+| ShopLazza  | `shoplazza`   |
+| ShopLine   | `shopline`    |
+| ShopBase   | `shopbase`    |
+| TikTok     | `tiktok`      |
+| WordPress  | `wordpress`   |
+| ShadowShop | `shadowshop`  |
+| Amazon     | `amazon`      |
+| 1688       | `alibaba1688` |
+| Internal   | `内部服务`    |
+| Unknown    | `未知平台`    |
 
-扩展内部建议仍使用小写英文 key（`shopify/newshop/shopbase/shopline/xshoppy/shoplazza/tiktok/wordpress/shadowshop`）；提交给后端时如需兼容旧 PHP，可在发送层把 NewShop 转为 `wshop`。
+扩展内部建议仍使用小写英文 key（`shopify/newshop/shopbase/shopline/xshoppy/shoplazza/tiktok/wordpress/shadowshop/amazon/alibaba1688`）；提交给后端时如需兼容旧 PHP，可在发送层把 NewShop 转为 `wshop`。
 
 ### 7.4 参考项目里的服务端专属路径
 
@@ -596,7 +602,7 @@ Chrome 持续收紧非商店扩展，若未来开发者模式被进一步限制�
 
 1. ✅ 私有化发布，不上架。
 2. ✅ v1 采集商品；评论等待 v2。
-3. ✅ 平台识别：Shopify / NewShop / ShopBase / ShopLine / XShopPy / ShopLazza / TikTok / WordPress / ShadowShop（WordPress / ShadowShop 仅识别，采集器待实现）。
+3. ✅ 平台识别与采集：Shopify / NewShop / ShopBase / ShopLine / XShopPy / ShopLazza / TikTok / WordPress（走 JSON-LD 兜底采集器）/ ShadowShop / Amazon / 1688，采集器均已实现。
 4. ✅ 仅监控商品详情页候选；不做列表页 / 集合页批量采集。
 5. ✅ 插件自动监控符合 URL 规则的页面并判断平台 / 可抓状态；创建商品必须用户手动点击。
 6. ✅ 提交前可做只读预览；不做复杂编辑器 / 字段映射 UI。
@@ -666,7 +672,7 @@ Chrome 持续收紧非商店扩展，若未来开发者模式被进一步限制�
 ## 14. 风险与建议
 
 - **凭据安全**：只保存后端密钥，不保存账号密码。
-- **7 个平台各自独立适配**：每个平台的数据入口、DOM 结构都需逐站实测，不能套用 Shopify；v1 工作量 = 7 个商品抓取器。
+- **11 个平台各自独立适配**：每个平台的数据入口、DOM 结构都需逐站实测，不能套用 Shopify；v1 工作量 = 11 个商品抓取器。
 - **评论碎片化（v2）**：各平台评论来源不统一（平台原生 or 第三方 App），第三方评论 App 每多支持一个 = 一份额外子规则；v2 初期每个平台先打通"原生 / 最高频的一种"即可。
 - **TikTok**：依赖 DOM 内 `script#__MODERN_ROUTER_DATA__`；如果页面被安全校验或区域限制替换内容，需要返回明确失败原因。
 - **MV3 寿命**：所有状态必须持久化。
@@ -688,17 +694,6 @@ scheer/
 │   ├── content/
 │   │   ├── index.ts               // 注入入口：平台识别 → 分发到对应 extractor
 │   │   ├── platform.ts            // 平台识别（URL host + 指纹）
-│   │   ├── extractors/            // ★ 7 个独立抓取器，互不共用平台逻辑
-│   │   │   ├── shopify/
-│   │   │   │   ├── index.ts       //   商品采集编排
-│   │   │   │   ├── product.ts     //   本平台原始字段 → 通用 Product
-│   │   │   │   └── selectors.json //   本平台选择器规则（数据）
-│   │   │   ├── newshop/{ product.ts, selectors.json }
-│   │   │   ├── shopbase/{ ... }
-│   │   │   ├── shopline/{ ... }
-│   │   │   ├── xshoppy/{ ... }
-│   │   │   ├── shoplazza/{ ... }
-│   │   │   └── tiktok/{ ... }     //   读 script#__MODERN_ROUTER_DATA__
 │   │   └── shared/                // 工具函数：可跨抓取器复用，但不含平台假设
 │   │       ├── main-world.ts      //   MAIN world 桥：读 window 注水对象 / 回传（ShopLine/ShopBase 等用）
 │   │       ├── xhr-intercept.ts   //   拦截页面 fetch / XHR（兜底用）
@@ -707,35 +702,47 @@ scheer/
 │   ├── popup/
 │   ├── options/
 │   └── shared/
+│       ├── extractors/            // ★ 11 个独立抓取器单文件，互不共用平台逻辑
+│       │   ├── shopify.ts         //   商品采集编排 + 本平台原始字段 → 通用 Product
+│       │   ├── newshop.ts
+│       │   ├── shopbase.ts
+│       │   ├── shopline.ts
+│       │   ├── xshoppy.ts         //   读 input.product-id → POST /buyer/product/pop-detail
+│       │   ├── shoplazza.ts
+│       │   ├── tiktok.ts          //   读 script#__MODERN_ROUTER_DATA__
+│       │   ├── shadowshop.ts
+│       │   ├── amazon.ts
+│       │   ├── alibaba1688.ts
+│       │   └── jsonld.ts          //   JSON-LD 兜底采集器（WordPress 等）
 │       ├── schema.ts              // Product / Config 类型；Review 等 v2
 │       ├── storage.ts
 │       └── messaging.ts
 ├── vendor/                        // 第三方库（打包进扩展，禁 CDN）
 ├── docs/
 └── tests/
-    └── fixtures/                  // 每平台样本页快照，用于选择器回归
+    └── shared/                    // 与 src 对应的单测：内联样本 + mock fetch + createHTMLDocument
 ```
 
 要点：
 
-- `extractors/<platform>/` 各自独立，**不互相 import**；新增平台 = 新增一个目录；
-- 选择器规则以 `selectors.json`（数据）存放；v1 不做远端热更新；
+- `shared/extractors/<platform>.ts` 各自独立，**不互相 import**；新增平台 = 新增一个单文件；
+- 选择器直接写在各抓取器 TS 文件内；v1 不做远端热更新；
 - `shared/` 只放无平台假设的纯工具，跨抓取器复用。
 
 ---
 
 ## 附录 B：技术栈
 
-| 层           | 选型             | 理由                                                                              |
-| ------------ | ---------------- | --------------------------------------------------------------------------------- |
-| **语言**     | TypeScript       | products / variants / images / Config 定义为类型；7 个抓取器 + 字段映射复用、防错 |
-| **扩展框架** | WXT              | 专为浏览器扩展设计，原生支持 MV3、HMR、`manifest.json` 自动生成、多浏览器构建     |
-| **构建**     | Vite（WXT 内置） | 快速 HMR 与打包                                                                   |
-| **UI**       | React            | Popup / Options 表单                                                              |
-| **样式**     | 原生 CSS         | 避免与宿主页面 CSS 冲突，无额外构建依赖                                           |
-| **抓取器**   | 纯 TS 函数       | 无副作用，易单测、易回归                                                          |
-| **测试**     | Vitest           | 商品抓取器对 `tests/fixtures/` 样本页快照做回归；logger / storage 单元测试        |
-| **依赖**     | 全部打包进扩展   | MV3 禁远程代码，禁 CDN                                                            |
+| 层           | 选型             | 理由                                                                               |
+| ------------ | ---------------- | ---------------------------------------------------------------------------------- |
+| **语言**     | TypeScript       | products / variants / images / Config 定义为类型；11 个抓取器 + 字段映射复用、防错 |
+| **扩展框架** | WXT              | 专为浏览器扩展设计，原生支持 MV3、HMR、`manifest.json` 自动生成、多浏览器构建      |
+| **构建**     | Vite（WXT 内置） | 快速 HMR 与打包                                                                    |
+| **UI**       | React            | Popup / Options 表单                                                               |
+| **样式**     | 原生 CSS         | 避免与宿主页面 CSS 冲突，无额外构建依赖                                            |
+| **抓取器**   | 纯 TS 函数       | 无副作用，易单测、易回归                                                           |
+| **测试**     | Vitest           | 商品抓取器以内联样本 + mock fetch 做回归；logger / storage 单元测试                |
+| **依赖**     | 全部打包进扩展   | MV3 禁远程代码，禁 CDN                                                             |
 
 约定：
 

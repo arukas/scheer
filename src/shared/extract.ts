@@ -15,6 +15,7 @@ import { extractShopbaseProduct } from './extractors/shopbase';
 import { extractTiktokProduct } from './extractors/tiktok';
 import { extractAmazonProduct } from './extractors/amazon';
 import { extractAlibaba1688Product } from './extractors/alibaba1688';
+import { extractXshoppyProduct } from './extractors/xshoppy';
 import { extractJsonLdProduct } from './extractors/jsonld';
 
 const log = createLogger('shared/extract');
@@ -53,7 +54,7 @@ export async function extractProduct(
       // WordPress 独立站通常带有 JSON-LD Product 结构化数据，作为兜底采集
       return extractJsonLdProduct(url, 'wordpress', doc);
     case 'xshoppy':
-      throw new Error(`平台 ${platform} 识别成功，但采集器尚未实现`);
+      return extractXshoppyProduct(url, doc);
     default:
       throw new Error(`暂不支持平台：${platform}`);
   }

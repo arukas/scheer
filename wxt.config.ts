@@ -23,8 +23,7 @@ function formatBuildTime(date = new Date()): string {
   const day = pad(date.getDate());
   const hour = pad(date.getHours());
   const minute = pad(date.getMinutes());
-  const second = pad(date.getSeconds());
-  return `${year}${month}${day}-${hour}${minute}${second}`;
+  return `${year}${month}${day}-${hour}${minute}`;
 }
 
 const baseVersion = pkg.version;

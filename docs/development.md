@@ -251,7 +251,7 @@ VITE_SHOW_DEBUG_SETTINGS=true pnpm build
 - `storage.ts`：基于 WXT `wxt/storage` 的 `chrome.storage.local` 读写封装，包括 `config`、`debug_logs`、`history`。
 - `logger.ts`：统一 Logger，支持 Debug 模式过滤、本地持久化、敏感信息脱敏与截断。
 - `messaging.ts`：跨上下文消息类型与封装。
-- `platform.ts`：轻量平台识别（占位实现，后续由 7 个抓取器补齐）。
+- `platform.ts`：平台识别（URL 规则 + HTML 指纹，覆盖 Shopify / NewShop / ShopBase / ShopLine / XShopPy / ShopLazza / TikTok / WordPress / ShadowShop / Amazon / 1688）。
 
 Debug 日志子系统的详细规范见 [`docs/debug-logging-design.md`](debug-logging-design.md)。
 

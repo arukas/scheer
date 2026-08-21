@@ -1,6 +1,6 @@
 # 平台支持状态矩阵
 
-本文档汇总 8 个目标平台的数据入口、实现状态与已知限制，供开发者快速查阅。
+本文档汇总 9 个目标平台的数据入口、实现状态与已知限制，供开发者快速查阅。
 
 > 状态说明：
 >
@@ -10,17 +10,17 @@
 
 ## 平台总览
 
-| 平台        | 类型      | 数据入口                                 | MAIN world | 状态   | 备注                                |
-| ----------- | --------- | ---------------------------------------- | ---------- | ------ | ----------------------------------- |
-| Shopify     | SaaS 建站 | `/products/<handle>.json`                | 否         | 已实现 | 结构化接口采集                      |
-| NewShop     | SaaS 建站 | URL 改写 `/api/store/products/<handle>`  | 否         | 已实现 | 结构化接口采集                      |
-| ShopBase    | SaaS 建站 | `window.__INITIAL_STATE__`               | 是         | 已实现 | 读取页面注水数据                    |
-| ShopLine    | SaaS 建站 | `window.__PRELOAD_STATE__.product`       | 是         | 已实现 | 失败时回退 JSON-LD                  |
-| XShopPy     | SaaS 建站 | POST `/buyer/product/pop-detail`         | 否         | 仅识别 | 采集器待实现                        |
-| ShopLazza   | SaaS 建站 | `/api/products/{id}` + DOM 详情          | 否         | 已实现 | API + DOM 混合采集                  |
-| TikTok Shop | 社交电商  | `<script id="__MODERN_ROUTER_DATA__">`   | 否         | 已实现 | 区域限制 / captcha 会明确报错       |
-| Amazon      | 综合电商  | `twister-js-init-dpx-data` + 固定 DOM ID | 否         | 已实现 | 规则详见 `docs/amazon-extractor.md` |
-| 1688        | 综合批发  | 内联 script `window.context` 注水对象    | 否         | 已实现 | 详情 HTML 走 detailUrl CDN 二次请求 |
+| 平台        | 类型      | 数据入口                                 | MAIN world | 状态   | 备注                                                                                          |
+| ----------- | --------- | ---------------------------------------- | ---------- | ------ | --------------------------------------------------------------------------------------------- |
+| Shopify     | SaaS 建站 | `/products/<handle>.json`                | 否         | 已实现 | 结构化接口采集                                                                                |
+| NewShop     | SaaS 建站 | URL 改写 `/api/store/products/<handle>`  | 否         | 已实现 | 结构化接口采集                                                                                |
+| ShopBase    | SaaS 建站 | `window.__INITIAL_STATE__`               | 是         | 已实现 | 读取页面注水数据                                                                              |
+| ShopLine    | SaaS 建站 | `window.__PRELOAD_STATE__.product`       | 是         | 已实现 | 失败时回退 JSON-LD                                                                            |
+| XShopPy     | SaaS 建站 | POST `/buyer/product/pop-detail`         | 否         | 已实现 | 采集器见 `src/shared/extractors/xshoppy.ts`，回归见 `tests/shared/extractors/xshoppy.test.ts` |
+| ShopLazza   | SaaS 建站 | `/api/products/{id}` + DOM 详情          | 否         | 已实现 | API + DOM 混合采集                                                                            |
+| TikTok Shop | 社交电商  | `<script id="__MODERN_ROUTER_DATA__">`   | 否         | 已实现 | 区域限制 / captcha 会明确报错                                                                 |
+| Amazon      | 综合电商  | `twister-js-init-dpx-data` + 固定 DOM ID | 否         | 已实现 | 规则详见 `docs/amazon-extractor.md`                                                           |
+| 1688        | 综合批发  | 内联 script `window.context` 注水对象    | 否         | 已实现 | 详情 HTML 走 detailUrl CDN 二次请求                                                           |
 
 ## 平台代码对照
 
@@ -79,10 +79,11 @@
 ### XShopPy
 
 - **入口**：POST `/buyer/product/pop-detail`。
-- **前置**：读 DOM `body > div.PageContainer.J-PageContainer > input.product-id`。
+- **前置**：读 DOM `input.product-id` 的 value——先尝试 `body > div.PageContainer.J-PageContainer > input.product-id`，失败时退化到任意 `input.product-id`。
 - **Body**：`{ "product_id": id }`，`Content-Type: application/json`。
+- **请求**：同源 POST，超时 10s，响应取 `data` 字段。
 - **注意**：
-  - 详情 HTML 中 `data-original` → `src`
+  - 详情 HTML 中 `data-original` → `src`，`//` 开头的协议相对 URL 补 `https:`
   - 无规格时默认 `Title / Default Title`
 
 ### ShopLazza
@@ -137,8 +138,8 @@
 ### 某平台页面改版后抓取失败怎么办？
 
 1. 确认数据入口是否仍然有效（API 是否 404、注水对象是否改名）。
-2. 更新 `selectors.json` 或 `product.ts` 中的字段映射。
-3. 更新 `tests/fixtures/<platform>/` 样本。
+2. 更新 `src/shared/extractors/<platform>.ts` 中的字段映射。
+3. 更新 `tests/shared/extractors/<platform>.test.ts` 中的内联样本。
 4. 运行回归测试，手动验证后提交 PR。
 
 ### 新增一个平台需要多少工作？
@@ -146,12 +147,12 @@
 按经验，一个平台至少需要：
 
 - 1 个数据入口调研（30 min ~ 2 h）
-- 1 个抓取器目录 + 字段转换实现（2 ~ 6 h）
-- 1 组 fixture + 测试（1 ~ 2 h）
+- 1 个抓取器文件 + 字段转换实现（2 ~ 6 h）
+- 1 组内联样本 + 测试（1 ~ 2 h）
 - 真实商品页手动验证（1 ~ 2 h）
 
 ## 相关文档
 
 - [`docs/design.md`](design.md)：完整数据入口、字段映射、架构设计。
 - [`docs/contributing.md`](contributing.md)：新增平台的具体流程。
-- [`docs/testing.md`](testing.md)：fixture 与回归测试。
+- [`docs/testing.md`](testing.md)：测试样本与回归测试。

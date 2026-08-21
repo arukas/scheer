@@ -4,23 +4,24 @@
 
 ## 目录约定
 
-每个平台一个独立目录，抓取器之间不共享平台特定逻辑：
+每个平台一个独立单文件，抓取器之间不共享平台特定逻辑：
 
 ```
-src/content/extractors/
-├── shopify/
-│   ├── index.ts          # 平台识别与采集编排
-│   ├── product.ts        # 原始字段 → 通用 Product 转换
-│   └── selectors.json    # 平台选择器规则（数据）
-├── newshop/
-├── shopbase/
-├── shopline/
-├── xshoppy/
-├── shoplazza/
-└── tiktok/
+src/shared/extractors/
+├── shopify.ts        # 采集编排 + 原始字段 → 通用 Product 转换
+├── newshop.ts
+├── shopbase.ts
+├── shopline.ts
+├── xshoppy.ts
+├── shoplazza.ts
+├── tiktok.ts
+├── shadowshop.ts
+├── amazon.ts
+├── alibaba1688.ts
+└── jsonld.ts         # JSON-LD 兜底采集器（WordPress 等）
 ```
 
-> 公共工具（XHR 拦截、JSON-LD 解析、MAIN world 桥）放在 `src/content/shared/`，但不得包含任何平台假设。
+> 选择器直接写在各抓取器 TS 文件内。公共工具（XHR 拦截、JSON-LD 解析、MAIN world 桥）放在 `src/shared/`，但不得包含任何平台假设。
 
 ## 新增平台的最小步骤
 
@@ -32,37 +33,35 @@ src/content/extractors/
    - 静态 DOM / JSON-LD
    - 多源合并
 
-2. **创建目录**
+2. **创建抓取器文件**
 
    ```bash
-   mkdir src/content/extractors/<platform>
+   touch src/shared/extractors/<platform>.ts
    ```
 
 3. **实现平台识别**
-   在 `index.ts` 中导出：
-   - `name: string`：平台展示名。
-   - `code: string`：提交给后端的平台代码（参考 `docs/design.md` §7.3）。
-   - `detect(url: URL): boolean`：根据 URL host / path / 页面指纹判断。
-   - `canExtract(): boolean`：轻量探测数据入口是否存在。
+   在 `src/shared/platform.ts` 中登记新平台：
+   - 在 `PlatformKey` 中加入平台 key（提交代码参考 `docs/design.md` §7.3）。
+   - 按 URL 规则或 HTML 指纹扩展 `detectPlatform` / `detectPlatformByHtml`，注意指纹检测顺序。
 
 4. **实现数据采集**
    按平台入口获取原始数据：
    - API：使用 `fetch`（同源，自动带 cookie）。
    - 注水对象：通过 MAIN world 桥读取。
    - DOM script：直接 `document.querySelector` + `JSON.parse`。
-   - 多源：分别取数后在 `product.ts` 中合并。
+   - 多源：分别取数后在抓取器文件内合并。
 
 5. **实现字段转换**
-   在 `product.ts` 中编写 `transform<Platform>Product`，输出严格符合 `docs/design.md` §6.1 的通用 Product。
+   在抓取器文件中编写 `extract<Platform>Product`，输出严格符合 `docs/design.md` §6.1 的通用 Product。
    - 使用 `src/shared/schema.ts` 中的类型。
    - 只提交 `docs/design.md` §7.1 白名单字段。
    - 注意 `variant.options`、图片 `type`、价格单位、HTML 清洗等细节。
 
-6. **添加选择器规则**
-   平台相关的 CSS 选择器、JSON 路径等写在 `selectors.json` 中，TS 代码读取该 JSON 而不是硬编码。
+6. **选择器规则**
+   平台相关的 CSS 选择器、JSON 路径等直接写在抓取器 TS 文件内。
 
-7. **添加 fixture 与测试**
-   参考 `docs/testing.md`，在 `tests/fixtures/<platform>/` 添加样本并编写回归测试。
+7. **添加测试**
+   参考 `docs/testing.md`，在 `tests/shared/extractors/<platform>.test.ts` 中内联样本并编写回归测试。
 
 8. **手动验证**
    在真实商品页运行扩展，确认：
@@ -92,9 +91,9 @@ src/content/extractors/
 ## 代码风格
 
 - TypeScript 严格模式。
-- 优先使用纯函数，抓取器内部副作用（fetch / DOM 读取）集中在 `index.ts`。
+- 优先使用纯函数，抓取器内部副作用（fetch / DOM 读取）集中在各抓取器的入口函数。
 - 不使用 `any`，原始数据类型用 `unknown` 进入后做校验。
-- 选择器规则放在 JSON，不在 TS 中写死 CSS selector。
+- 选择器规则直接写在抓取器 TS 文件内。
 
 ## 提交前自检
 
@@ -109,15 +108,15 @@ pnpm build
 
 ## 修改现有平台字段
 
-1. 先更新对应平台的 `tests/fixtures/<platform>/expected-product.json`。
-2. 修改 `product.ts` 中的转换逻辑。
+1. 先更新对应平台测试文件（`tests/shared/extractors/<platform>.test.ts`）中的内联样本与期望断言。
+2. 修改 `src/shared/extractors/<platform>.ts` 中的转换逻辑。
 3. 运行测试，确认差异在预期范围内。
 4. 在 PR 描述中说明字段变更原因与影响平台。
 
 ## 不要做的事
 
 - 不要在一个抓取器中引用另一个抓取器的平台逻辑。
-- 不要把选择器硬编码在 TS 中。
+- 不要为选择器单独建 JSON 规则文件；选择器直接写在抓取器 TS 文件内。
 - 不要向后端提交 `docs/design.md` §6.1 列出的"扩展不传"字段。
 - 不要新增平台 API 调用而不更新文档与测试。
 

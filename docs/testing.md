@@ -18,55 +18,47 @@
 
 输入输出都是纯数据，天然适合用 Vitest 做快照回归。
 
-## Fixture 约定
+## 样本约定
 
-`tests/fixtures/` 按平台组织：
+当前不使用 `tests/fixtures/` 目录，测试样本直接内联在各抓取器的测试文件中（可参考 `tests/shared/extractors/xshoppy.test.ts` 的实际写法）：
 
-```
-tests/fixtures/
-├── shopify/
-│   ├── product.json              # /products/<handle>.json 响应
-│   └── expected-product.json     # 转换后的通用 Product
-├── newshop/
-│   ├── product.json
-│   └── expected-product.json
-├── shopbase/
-│   ├── initial-state.json        # window.__INITIAL_STATE__ 片段
-│   └── expected-product.json
-├── shopline/
-│   ├── preload-state.json        # window.__PRELOAD_STATE__.product 片段
-│   └── expected-product.json
-├── xshoppy/
-│   ├── pop-detail.json           # /buyer/product/pop-detail 响应
-│   └── expected-product.json
-├── shoplazza/
-│   ├── product.json              # /api/products/{id} 响应
-│   ├── page.html                 # 商品页 HTML（用于长描述）
-│   └── expected-product.json
-└── tiktok/
-    ├── modern-router-data.json   # #__MODERN_ROUTER_DATA__ 内容
-    └── expected-product.json
-```
+- **接口响应**：在测试文件内以对象字面量定义样本（如 `sampleResponse`），断言时与转换结果逐字段比对。
+- **网络请求**：`beforeEach` 中用 `vi.fn()` 替换 `global.fetch`，各用例以 `mockResolvedValueOnce` 返回内联样本构造的响应。
+- **DOM 依赖**：用 `document.implementation.createHTMLDocument()` 构造文档并插入目标节点（如 `input.product-id`），作为参数传给抓取器。
 
-### Fixture 来源
+### 样本来源
 
-- 从真实商品页保存原始响应（注意脱敏：去掉 cookie、token、个人地址等）。
-- 每个平台至少保留 1 个典型样本；结构异常（无规格、单 variant、懒加载图片多）的样本单独建文件。
+- 从真实商品页保存原始响应后内联进测试（注意脱敏：去掉 cookie、token、个人地址等）。
+- 每个平台至少保留 1 个典型样本；结构异常（无规格、单 variant、懒加载图片多）的场景单独写用例。
 
 ## 抓取器测试示例
 
-假设 `src/content/extractors/shopify/product.ts` 导出 `transformShopifyProduct`：
+以 `src/shared/extractors/shopify.ts` 导出的 `extractShopifyProduct` 为例（完整代码见 `tests/shared/extractors/shopify.test.ts`）：
 
 ```ts
-import { describe, it, expect } from 'vitest';
-import { transformShopifyProduct } from '@/content/extractors/shopify/product';
-import raw from '@tests/fixtures/shopify/product.json';
-import expected from '@tests/fixtures/shopify/expected-product.json';
+import { describe, it, expect, vi } from 'vitest';
+import { extractShopifyProduct } from '@/shared/extractors/shopify';
 
-describe('shopify transformer', () => {
-  it('matches expected product schema', () => {
-    const result = transformShopifyProduct(raw.product);
-    expect(result).toEqual(expected);
+const sampleResponse = {
+  product: { id: 123456789, title: 'IPod Nano - 8GB' /* ... */ },
+};
+
+describe('shopify extractor', () => {
+  it('converts Shopify .json API response to CreateProductPayload', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify(sampleResponse),
+      headers: { get: () => 'application/json' },
+    });
+    global.fetch = fetchMock;
+
+    const payload = await extractShopifyProduct(
+      'https://example.myshopify.com/products/ipod-nano-8gb'
+    );
+
+    expect(payload.platform).toBe('shopify');
+    expect(payload.product.title).toBe('IPod Nano - 8GB');
   });
 });
 ```
@@ -81,16 +73,14 @@ describe('shopify transformer', () => {
 
 ## 新增平台的测试流程
 
-1. 在 `tests/fixtures/<platform>/` 添加原始数据和 `expected-product.json`。
-2. 编写 `transform<Platform>Product` 测试。
-3. 运行测试，生成或更新快照：
+1. 在 `tests/shared/extractors/<platform>.test.ts` 中内联样本响应并编写回归断言。
+2. 运行测试：
 
    ```bash
    pnpm test
-   pnpm test -- --update
    ```
 
-4. 手动在真实商品页验证一次，确认 fixture 与线上结构一致。
+3. 手动在真实商品页验证一次，确认内联样本与线上结构一致。
 
 ## CI 建议
 
@@ -112,7 +102,7 @@ steps:
 ## 快照策略
 
 - 抓取器输出使用 `toEqual` 精确匹配，避免快照过大导致 diff 难以 review。
-- 如果平台改版导致字段变化，先更新 fixture，再运行测试确认差异，最后提交 PR。
+- 如果平台改版导致字段变化，先更新内联样本，再运行测试确认差异，最后提交 PR。
 
 ## 相关文档
 

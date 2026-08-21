@@ -256,6 +256,12 @@ describe('detectPlatformByHtml', () => {
     expect(detectPlatformByHtml(html)).toBe('shoplazza');
   });
 
+  it('detects XShopPy by self-hosted /liquid/buyer/ script path', () => {
+    const html =
+      '<html><head><script src="https://www.berrky.com/liquid/buyer/public/js/plug/vendor.min.js"></script></head></html>';
+    expect(detectPlatformByHtml(html)).toBe('xshoppy');
+  });
+
   it('does not detect ShopLazza by C_SETTINGS alone', () => {
     const html = '<html><head><script>window.C_SETTINGS = {};</script></head></html>';
     expect(detectPlatformByHtml(html)).toBeNull();

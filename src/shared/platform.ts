@@ -1,12 +1,13 @@
 /**
  * 平台识别
  *
- * 参考 PHP CrawlService.php 的探测流程：
- * 1. URL 规则初筛：TikTok / myshopify.com
- * 2. 对 /products/<handle> 页面，并发尝试 Shopify .json 与 NewShop /api/store/products/<handle>
- * 3. 若 API 都不命中，回退到 HTML 指纹探测（ShopLazza / ShopLine / ShopBase / XShopPy）
+ * 探测流程：
+ * 1. URL 规则初筛：TikTok / myshopify.com / Amazon / 1688
+ * 2. HTML 指纹探测：按页面 script src / link href 识别
+ *    ShopLine / NewShop / Shopify / WordPress / ShadowShop / ShopLazza / ShopBase / XShopPy / Amazon
  *
- * 当前实现阶段：API 探测已覆盖 Shopify / NewShop；HTML 指纹探测为占位，后续补齐。
+ * 历史上曾参考 PHP CrawlService.php 并发探测 Shopify .json 与 NewShop API，
+ * 现已废弃（detectPlatformByApi 仅保留给单测），不再对未知站点主动发请求。
  */
 
 import type { PlatformKey } from './schema';
@@ -343,6 +344,11 @@ export function detectPlatformByHtml(html: string): PlatformKey | null {
   // ShopBase：脚本 host 包含 thesitebase.net
   if (srcs.some((src) => src.includes('thesitebase.net'))) {
     return 'shopbase';
+  }
+
+  // XShopPy：自托管资源路径 /liquid/buyer/
+  if (srcs.some((src) => src.includes('/liquid/buyer/'))) {
+    return 'xshoppy';
   }
 
   // Amazon：页面引用其 CDN 资源或 UI 框架（放在最后，避免抢占其它平台指纹）

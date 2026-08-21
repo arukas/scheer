@@ -23,6 +23,7 @@
 - `newshop`
 - `shopbase`
 - `shopline`
+- `xshoppy`
 - `shoplazza`
 - `tiktok`
 - `wordpress`
@@ -30,7 +31,7 @@
 - `amazon`
 - `alibaba1688`
 
-`newshop` 在旧后端中可映射为 `wshop`。XShopPy 当前仅支持识别，尚不提交商品数据。
+`newshop` 在旧后端中可映射为 `wshop`。
 
 ## 商品主体：`Product`
 
@@ -209,7 +210,7 @@
 | WordPress  | `src/shared/extractors/jsonld.ts`      | ✅ 已兼容 |
 | ShadowShop | `src/shared/extractors/shadowshop.ts`  | ✅ 已兼容 |
 | ShopBase   | `src/shared/extractors/shopbase.ts`    | ✅ 已兼容 |
-| XShopPy    | 尚无采集器                             | 仅识别    |
+| XShopPy    | `src/shared/extractors/xshoppy.ts`     | ✅ 已兼容 |
 | ShopLazza  | `src/shared/extractors/shoplazza.ts`   | ✅ 已兼容 |
 | TikTok     | `src/shared/extractors/tiktok.ts`      | ✅ 已兼容 |
 | Amazon     | `src/shared/extractors/amazon.ts`      | ✅ 已兼容 |

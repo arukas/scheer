@@ -58,7 +58,6 @@ export const translations = {
     platformsLead:
       'Each collector handles its platform’s data source and page differences, then submits the same data model to your backend.',
     collectable: '● Collectable',
-    detectOnly: '◐ Detection only',
     dataFlow: 'Data flow',
     flowInputTitle: 'Current product page',
     flowInputText: 'Opened and authorized by the user',
@@ -244,7 +243,6 @@ export const translations = {
     platformsLead:
       'Cada recopilador resuelve las diferencias de su plataforma y envía el mismo modelo de datos a tu backend.',
     collectable: '● Compatible',
-    detectOnly: '◐ Solo detección',
     dataFlow: 'Flujo de datos',
     flowInputTitle: 'Página de producto actual',
     flowInputText: 'Abierta y autorizada por el usuario',
