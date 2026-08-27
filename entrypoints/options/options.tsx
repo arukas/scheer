@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { sendMessage } from '../../src/shared/messaging';
-import type { Config, DebugLogs } from '../../src/shared/schema';
+import type { Config, DebugLogs, ImportedConfig } from '../../src/shared/schema';
 import { DEBUG_LOG_LEVELS } from '../../src/shared/schema';
 import { mergeImportedConfig } from '../../src/shared/storage';
 import { localizeDocument, t } from '../../src/shared/i18n';
@@ -116,15 +116,15 @@ function Options() {
       return;
     }
 
-    if ((parsed as Partial<Config>).server !== undefined) {
-      const server = (parsed as Partial<Config>).server;
+    if ((parsed as ImportedConfig).server !== undefined) {
+      const server = (parsed as ImportedConfig).server;
       if (typeof server !== 'object' || server === null || Array.isArray(server)) {
         setStatus(t('importServerMustBeObject'));
         return;
       }
     }
 
-    const merged = mergeImportedConfig(config, parsed as Partial<Config>);
+    const merged = mergeImportedConfig(config, parsed as ImportedConfig);
 
     if (!merged.server.secret.trim()) {
       setStatus(t('importSecretRequired'));

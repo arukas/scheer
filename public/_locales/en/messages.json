@@ -126,5 +126,24 @@
   "importAndSave": { "message": "Import and save" },
   "cancel": { "message": "Cancel" },
   "testConfig": { "message": "Test configuration" },
-  "save": { "message": "Save" }
+  "save": { "message": "Save" },
+  "importDocumentTitle": { "message": "Import Scheer Settings" },
+  "importRequestTitle": { "message": "Configuration import request" },
+  "importRequestHint": {
+    "message": "A website is requesting to change this extension's settings. Review the origin and the changes before confirming."
+  },
+  "importSourceOrigin": { "message": "Request origin" },
+  "importBaseChangeWarning": {
+    "message": "The backend URL will change: collected data will be sent to a new server. Only confirm if you trust this origin."
+  },
+  "importChangesTitle": { "message": "Settings to change" },
+  "importEmptyValue": { "message": "(empty)" },
+  "importTrustHint": {
+    "message": "Confirming will modify the extension settings. Only accept requests from websites you trust."
+  },
+  "importConfirm": { "message": "Confirm import" },
+  "importExpiredTitle": { "message": "Request expired" },
+  "importExpiredMessage": {
+    "message": "There is no pending import, or the request has expired. Go back to the website and try again."
+  }
 }

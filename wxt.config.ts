@@ -29,11 +29,15 @@ function formatBuildTime(date = new Date()): string {
 const baseVersion = pkg.version;
 const versionName = `${baseVersion}-${getGitHash()}-${formatBuildTime()}`;
 
+// 固定 Extension ID 用的 manifest key（公钥 base64，见 docs/development.md）。
+// 通过环境变量注入（npm run build 会加载 .env.local）；未配置时保持现状构建，ID 不固定。
+const extensionKey = process.env.SCHEER_EXTENSION_KEY;
+
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   extensionApi: 'chrome',
   outDir: 'dist',
-  manifest: {
+  manifest: ({ browser }) => ({
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
     default_locale: 'zh_CN',
@@ -41,7 +45,21 @@ export default defineConfig({
     version_name: versionName,
     permissions: ['storage', 'activeTab', 'scripting'],
     optional_host_permissions: ['https://*/*'],
-  },
+    // 以下为 Chrome 专属（外部配置导入功能不支持 Firefox）：
+    // - 只暴露 bridge.html 给任意 HTTP/HTTPS 页面（详见 Chrome_Extension_Import_Integration_Guide.md）
+    // - manifest key 用于固定 Extension ID
+    ...(browser !== 'firefox'
+      ? {
+          web_accessible_resources: [
+            {
+              resources: ['bridge.html'],
+              matches: ['http://*/*', 'https://*/*'],
+            },
+          ],
+          ...(extensionKey ? { key: extensionKey } : {}),
+        }
+      : {}),
+  }),
   runner: {
     // 开发时启动 Chromium，默认开启扩展页
     startUrls: ['https://example.com'],

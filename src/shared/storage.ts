@@ -10,7 +10,14 @@
  */
 
 import { storage } from 'wxt/storage';
-import type { Config, DebugLogs, DebugLogEntry, HistoryItem, TokenStatus } from './schema';
+import type {
+  Config,
+  DebugLogs,
+  DebugLogEntry,
+  HistoryItem,
+  ImportedConfig,
+  TokenStatus,
+} from './schema';
 import { DEFAULT_CONFIG, DEFAULT_DEBUG_LOGS } from './schema';
 
 // ============================================================================
@@ -52,7 +59,7 @@ function mergeOptionalNested<T extends object>(
  * imported 提供的字段覆盖 current，未提供的字段保持 current 的值。
  * 最后用默认值兜底，防止导入的嵌套对象缺字段。
  */
-export function mergeImportedConfig(current: Config, imported: Partial<Config>): Config {
+export function mergeImportedConfig(current: Config, imported: ImportedConfig): Config {
   const merged: Config = {
     ...current,
     ...imported,
@@ -133,6 +140,11 @@ export async function getTokenStatus(): Promise<TokenStatus | null> {
 
 export async function setTokenStatus(status: TokenStatus): Promise<void> {
   return tokenStatusItem.setValue(status);
+}
+
+/** 清除缓存的 Token 有效期状态（配置变更后旧状态不再可信） */
+export async function clearTokenStatus(): Promise<void> {
+  return tokenStatusItem.removeValue();
 }
 
 // ============================================================================

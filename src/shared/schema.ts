@@ -13,18 +13,21 @@
 // ============================================================================
 
 /** 支持的平台内部 key（与 docs/design.md §7.3 对齐） */
-export type PlatformKey =
-  | 'shopify'
-  | 'newshop'
-  | 'shopbase'
-  | 'shopline'
-  | 'xshoppy'
-  | 'shoplazza'
-  | 'tiktok'
-  | 'wordpress'
-  | 'shadowshop'
-  | 'amazon'
-  | 'alibaba1688';
+export const PLATFORM_KEYS = [
+  'shopify',
+  'newshop',
+  'shopbase',
+  'shopline',
+  'xshoppy',
+  'shoplazza',
+  'tiktok',
+  'wordpress',
+  'shadowshop',
+  'amazon',
+  'alibaba1688',
+] as const;
+
+export type PlatformKey = (typeof PLATFORM_KEYS)[number];
 
 /** 提交给后端时使用的平台代码（newshop 在后端可能对应 wshop） */
 export type PlatformCode = PlatformKey | 'wshop';
@@ -174,6 +177,21 @@ export interface Config {
   retry?: { max_attempts: number; backoff_base_ms: number; retryable_status: number[] };
   ui?: { notify_success: boolean; notify_failure: boolean };
   storage?: { keep_history_days: number; product_dedup_key: string; review_dedup_key?: string };
+}
+
+/**
+ * 导入场景（粘贴导入 / 外部配置导入）接受的部分配置：
+ * 顶层 section 可选，嵌套 section 内部也只需给出要修改的字段。
+ * platforms 为整体替换语义，需提供完整映射。
+ */
+export interface ImportedConfig {
+  server?: Partial<ServerConfig>;
+  crawl?: Partial<CrawlConfig>;
+  debug?: Partial<DebugConfig>;
+  platforms?: Record<PlatformKey, boolean>;
+  retry?: Partial<NonNullable<Config['retry']>>;
+  ui?: Partial<NonNullable<Config['ui']>>;
+  storage?: Partial<NonNullable<Config['storage']>>;
 }
 
 /** 默认配置 */

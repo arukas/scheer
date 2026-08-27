@@ -116,5 +116,24 @@
   "importAndSave": { "message": "导入并保存" },
   "cancel": { "message": "取消" },
   "testConfig": { "message": "测试配置" },
-  "save": { "message": "保存" }
+  "save": { "message": "保存" },
+  "importDocumentTitle": { "message": "导入 Scheer 配置" },
+  "importRequestTitle": { "message": "导入配置请求" },
+  "importRequestHint": {
+    "message": "有网站请求修改此扩展的配置。请核对来源与变更内容后再确认。"
+  },
+  "importSourceOrigin": { "message": "请求来源" },
+  "importBaseChangeWarning": {
+    "message": "后端域名将被修改：确认后采集数据会发送到新的服务器。请确认你信任该来源。"
+  },
+  "importChangesTitle": { "message": "配置变更" },
+  "importEmptyValue": { "message": "（空）" },
+  "importTrustHint": {
+    "message": "确认后将修改扩展配置。请只接受你信任的网站发起的请求。"
+  },
+  "importConfirm": { "message": "确认导入" },
+  "importExpiredTitle": { "message": "请求已失效" },
+  "importExpiredMessage": {
+    "message": "没有待导入的配置，或请求已过期。请回到原网站重新发起。"
+  }
 }

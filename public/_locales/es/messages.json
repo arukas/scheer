@@ -126,5 +126,24 @@
   "importAndSave": { "message": "Importar y guardar" },
   "cancel": { "message": "Cancelar" },
   "testConfig": { "message": "Probar configuración" },
-  "save": { "message": "Guardar" }
+  "save": { "message": "Guardar" },
+  "importDocumentTitle": { "message": "Importar configuración de Scheer" },
+  "importRequestTitle": { "message": "Solicitud de importación de configuración" },
+  "importRequestHint": {
+    "message": "Un sitio web solicita modificar la configuración de esta extensión. Revisa el origen y los cambios antes de confirmar."
+  },
+  "importSourceOrigin": { "message": "Origen de la solicitud" },
+  "importBaseChangeWarning": {
+    "message": "La URL del backend cambiará: los datos recopilados se enviarán a un nuevo servidor. Confirma solo si confías en este origen."
+  },
+  "importChangesTitle": { "message": "Cambios de configuración" },
+  "importEmptyValue": { "message": "(vacío)" },
+  "importTrustHint": {
+    "message": "Al confirmar se modificará la configuración de la extensión. Acepta solo solicitudes de sitios web en los que confíes."
+  },
+  "importConfirm": { "message": "Confirmar importación" },
+  "importExpiredTitle": { "message": "Solicitud caducada" },
+  "importExpiredMessage": {
+    "message": "No hay ninguna importación pendiente o la solicitud ha caducado. Vuelve al sitio web e inténtalo de nuevo."
+  }
 }

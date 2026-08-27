@@ -135,6 +135,42 @@ pnpm zip
 
 产物位于 `dist/chrome-mv3/`，`pnpm zip` 会生成 `dist/scheer-0.1.0-chrome.zip`，可直接分发给客户。生产构建会禁用 HMR 并进行代码压缩。
 
+## 固定 Extension ID（外部配置导入）
+
+「外部配置导入」功能要求接入方配置稳定的 Extension ID。zip 分发 + 加载已解压扩展时，ID 默认由安装路径决定，换个目录就会变，因此需要通过 manifest `key` 固定。
+
+一次性生成密钥对：
+
+```bash
+# 私钥：本地保存，绝不入库（.gitignore 已排除 *.pem）
+openssl genrsa -out scheer-extension-key.pem 2048
+
+# 公钥（base64 单行）：即 manifest key
+openssl rsa -in scheer-extension-key.pem -pubout -outform DER | base64 | tr -d '\n'
+```
+
+把公钥输出写入 `.env.local`：
+
+```bash
+SCHEER_EXTENSION_KEY=<上一步的 base64 输出>
+```
+
+之后通过 `pnpm build` 构建的产物 manifest 会携带该 key，无论安装路径如何，Extension ID 都固定不变（`npm run build` 的包装脚本会加载 `.env.local`；直接跑 `wxt build` 时需自行导出该环境变量）。
+
+注意：
+
+- 一旦发布过带 key 的构建，后续版本必须使用同一把 key，否则用户安装后 ID 变化、接入方配置会失效。
+- 未配置 `SCHEER_EXTENSION_KEY` 时按现状构建（开发环境 ID 随机，不影响本地联调以外的事项）。
+
+## 外部配置导入（验收）
+
+扩展暴露 `bridge.html` 供任意网站发起配置导入请求（协议见 `Chrome_Extension_Import_Integration_Guide.md`）。手工验收：
+
+1. 加载开发版扩展，在 `chrome://extensions` 卡片上复制 Extension ID。
+2. 启动 demo 页：`npx serve sdk`（或 `python3 -m http.server -d sdk 8000`）。
+3. 打开 demo 页，填入 Extension ID 与待导入 JSON，点击"发起导入请求"。
+4. 扩展应弹出确认窗口：核对来源 origin、字段变更（`server.secret`/`server.headers` 掩码）；确认后配置写入，取消则不生效。
+
 ## 上传产物到 S3 / OSS
 
 扩展支持构建或打包后自动上传到 S3 兼容的对象存储（阿里云 OSS、AWS S3、MinIO 等）。

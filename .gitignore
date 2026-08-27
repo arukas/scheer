@@ -33,3 +33,6 @@ Thumbs.db
 # Environment variables
 .env
 .env.local
+
+# Extension signing keys（manifest key 私钥，绝不入库）
+*.pem
