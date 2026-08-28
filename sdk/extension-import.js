@@ -4,7 +4,7 @@
  * 用法：
  *   import { requestExtensionConfigImport } from './extension-import.js';
  *   await requestExtensionConfigImport({
- *     extensionId: '你的扩展 ID',
+ *     extensionId: 'llgkpplbkghofbpkldbnckmljcmfiajg', // 商店版固定 ID
  *     config: { server: { base: 'https://api.example.com', secret: 'sk-xxx' } },
  *   });
  *

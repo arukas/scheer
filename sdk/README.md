@@ -11,7 +11,7 @@
 ## 前置条件
 
 1. 用户浏览器已安装 Scheer 扩展（Chrome，MV3）。
-2. 你知道该扩展的 **Extension ID**（32 位小写字母）。正式分发的构建已固定 ID，由扩展提供方告诉你；开发联调时让用户在 `chrome://extensions` 卡片上复制。
+2. Extension ID：**商店正式版固定为 `llgkpplbkghofbpkldbnckmljcmfiajg`**，直接写死在你的代码里即可。注意：zip 私分发/开发版的 ID 与商店版不同，只有给非商店渠道的用户联调时才需要换成对应 ID（让用户在 `chrome://extensions` 卡片上复制）。
 
 ## 快速开始（3 步）
 
@@ -25,7 +25,7 @@ import { requestExtensionConfigImport } from './extension-import.js';
 async function onConnectClick() {
   try {
     await requestExtensionConfigImport({
-      extensionId: 'EXTENSION_ID_HERE', // 扩展提供方给的 ID
+      extensionId: 'llgkpplbkghofbpkldbnckmljcmfiajg', // Scheer 商店版固定 ID
       config: {
         server: {
           base: 'https://api.example.com', // 你的后端地址，必须 https
