@@ -1,0 +1,61 @@
+/**
+ * 商品采集分发器
+ *
+ * 按平台把当前页面转换为 CreateProductPayload。
+ */
+
+import { createLogger } from './logger';
+import type { CreateProductPayload, PlatformKey } from './schema';
+import { extractShopifyProduct } from './extractors/shopify';
+import { extractShoplineProduct } from './extractors/shopline';
+import { extractNewshopProduct } from './extractors/newshop';
+import { extractShadowshopProduct } from './extractors/shadowshop';
+import { extractShoplazzaProduct } from './extractors/shoplazza';
+import { extractShopbaseProduct } from './extractors/shopbase';
+import { extractTiktokProduct } from './extractors/tiktok';
+import { extractAmazonProduct } from './extractors/amazon';
+import { extractAlibaba1688Product } from './extractors/alibaba1688';
+import { extractXshoppyProduct } from './extractors/xshoppy';
+import { extractJsonLdProduct } from './extractors/jsonld';
+
+const log = createLogger('shared/extract');
+
+export async function extractProduct(
+  url: string,
+  platform: PlatformKey,
+  doc: Document
+): Promise<CreateProductPayload> {
+  switch (platform) {
+    case 'shopify':
+      return extractShopifyProduct(url);
+    case 'shopline':
+      try {
+        return await extractShoplineProduct(url);
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        log.warn('ShopLine API 采集失败，回退到 JSON-LD', { error });
+        return extractJsonLdProduct(url, 'shopline', doc);
+      }
+    case 'newshop':
+      return extractNewshopProduct(url);
+    case 'shadowshop':
+      return extractShadowshopProduct(url, doc);
+    case 'shoplazza':
+      return extractShoplazzaProduct(url, doc);
+    case 'shopbase':
+      return extractShopbaseProduct(url, doc);
+    case 'tiktok':
+      return extractTiktokProduct(url, doc);
+    case 'amazon':
+      return extractAmazonProduct(url, doc);
+    case 'alibaba1688':
+      return extractAlibaba1688Product(url, doc);
+    case 'wordpress':
+      // WordPress 独立站通常带有 JSON-LD Product 结构化数据，作为兜底采集
+      return extractJsonLdProduct(url, 'wordpress', doc);
+    case 'xshoppy':
+      return extractXshoppyProduct(url, doc);
+    default:
+      throw new Error(`暂不支持平台：${platform}`);
+  }
+}
